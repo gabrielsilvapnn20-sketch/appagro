@@ -817,6 +817,15 @@ export function ReportSheet({
 }) {
   const report = buildReport(visit, client, talhaoNome);
 
+  async function baixarPdf() {
+    try {
+      const { downloadVisitPdf } = await import("@/lib/pdf");
+      await downloadVisitPdf(visit, client, talhaoNome);
+    } catch {
+      toast("Não foi possível gerar o PDF");
+    }
+  }
+
   function copy() {
     if (navigator.clipboard) {
       navigator.clipboard
@@ -836,22 +845,25 @@ export function ReportSheet({
         <button className="btn" style={{ flex: 1 }} onClick={copy}>
           Copiar
         </button>
-        <a
-          className="btn btn-primary"
-          style={{
-            flex: 1,
-            textDecoration: "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-          target="_blank"
-          rel="noopener"
-          href={waLink(report, client && client.telefone)}
-        >
-          Enviar no WhatsApp
-        </a>
+        <button className="btn" style={{ flex: 1 }} onClick={baixarPdf}>
+          Baixar PDF
+        </button>
       </div>
+      <a
+        className="btn btn-primary btn-block"
+        style={{
+          textDecoration: "none",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          marginTop: 10,
+        }}
+        target="_blank"
+        rel="noopener"
+        href={waLink(report, client && client.telefone)}
+      >
+        Enviar no WhatsApp
+      </a>
     </>
   );
 }
