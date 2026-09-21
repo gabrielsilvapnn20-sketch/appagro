@@ -110,6 +110,17 @@ export function buildReport(v: Visit, c?: Client, talhaoNome?: string): string {
     lines.push(v.recomendacoes);
     lines.push("");
   }
+  if (v.receituario && v.receituario.length) {
+    lines.push("Receituário (produtos recomendados):");
+    v.receituario.forEach((r) => {
+      const dose = r.dose
+        ? " — " + r.dose + (r.unidade ? " " + r.unidade : "")
+        : "";
+      const alvo = r.alvo ? " (alvo: " + r.alvo + ")" : "";
+      lines.push("- " + r.produto + dose + alvo);
+    });
+    lines.push("");
+  }
   if (v.nextReturnDate) lines.push("Próximo retorno: " + fmtDate(v.nextReturnDate));
   if (v.photos && v.photos.length)
     lines.push("Fotos anexadas: " + v.photos.length);

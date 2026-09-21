@@ -4,10 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import {
   FASES_LAVOURA,
   TIPOS_MONITORAMENTO,
+  UNIDADES_DOSE,
   UNIDADES_MONITORAMENTO,
   type Client,
   type MonitTipo,
   type Monitoramento,
+  type Recomendacao,
   type Talhao,
   type Visit,
 } from "@/lib/domain";
@@ -44,7 +46,8 @@ export function VisitaScreen({
       recomendacoes: string;
     },
     files: File[],
-    monitoramentos: Monitoramento[]
+    monitoramentos: Monitoramento[],
+    receituario: Recomendacao[]
   ) => Promise<boolean>;
   onOpenReport: (v: Visit) => void;
   toast: (m: string) => void;
@@ -89,6 +92,38 @@ export function VisitaScreen({
 
   function removeMonit(id: string) {
     setMonits((prev) => prev.filter((m) => m.id !== id));
+  }
+
+  // receituário (produtos recomendados)
+  const [recs, setRecs] = useState<Recomendacao[]>([]);
+  const [rProduto, setRProduto] = useState("");
+  const [rDose, setRDose] = useState("");
+  const [rUnidade, setRUnidade] = useState(UNIDADES_DOSE[0]);
+  const [rAlvo, setRAlvo] = useState("");
+
+  function addRec() {
+    if (!rProduto.trim()) {
+      toast("Informe o produto");
+      return;
+    }
+    setRecs((prev) => [
+      ...prev,
+      {
+        id: "r" + Date.now() + Math.random().toString(36).slice(2, 6),
+        produto: rProduto.trim(),
+        dose: rDose,
+        unidade: rUnidade,
+        alvo: rAlvo.trim(),
+        obs: "",
+      },
+    ]);
+    setRProduto("");
+    setRDose("");
+    setRAlvo("");
+  }
+
+  function removeRec(id: string) {
+    setRecs((prev) => prev.filter((r) => r.id !== id));
   }
 
   useEffect(() => {
@@ -146,7 +181,8 @@ export function VisitaScreen({
         recomendacoes: recomendacoes.trim(),
       },
       pending.map((p) => p.file),
-      monits
+      monits,
+      recs
     );
     setSaving(false);
     if (ok) {
@@ -159,6 +195,7 @@ export function VisitaScreen({
       setRecomendacoes("");
       setPending([]);
       setMonits([]);
+      setRecs([]);
     }
   }
 
@@ -337,6 +374,85 @@ export function VisitaScreen({
           </div>
           <button type="button" className="btn btn-block" onClick={addMonit}>
             + Adicionar ocorrência
+          </button>
+        </div>
+
+        <label>Produtos recomendados (receituário)</label>
+        {recs.length > 0 && (
+          <div style={{ marginBottom: 10 }}>
+            {recs.map((r) => (
+              <div
+                key={r.id}
+                className="oppcard"
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 6,
+                }}
+              >
+                <div style={{ fontSize: 13 }}>
+                  <b style={{ fontWeight: 700 }}>{r.produto}</b>
+                  {r.dose
+                    ? " — " + r.dose + (r.unidade ? " " + r.unidade : "")
+                    : ""}
+                  {r.alvo ? " · alvo: " + r.alvo : ""}
+                </div>
+                <button
+                  type="button"
+                  aria-label="Remover"
+                  onClick={() => removeRec(r.id)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--danger)",
+                    fontSize: 20,
+                    cursor: "pointer",
+                    lineHeight: 1,
+                    padding: "0 4px",
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <input
+            className="input"
+            placeholder="Produto (ex: Fungicida triazol)"
+            value={rProduto}
+            onChange={(e) => setRProduto(e.target.value)}
+          />
+          <div className="row2">
+            <input
+              className="input"
+              type="number"
+              placeholder="Dose"
+              value={rDose}
+              onChange={(e) => setRDose(e.target.value)}
+            />
+            <select
+              className="select"
+              value={rUnidade}
+              onChange={(e) => setRUnidade(e.target.value)}
+            >
+              {UNIDADES_DOSE.map((u) => (
+                <option key={u} value={u}>
+                  {u}
+                </option>
+              ))}
+            </select>
+          </div>
+          <input
+            className="input"
+            placeholder="Alvo (opcional)"
+            value={rAlvo}
+            onChange={(e) => setRAlvo(e.target.value)}
+          />
+          <button type="button" className="btn btn-block" onClick={addRec}>
+            + Adicionar produto
           </button>
         </div>
 

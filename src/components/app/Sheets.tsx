@@ -604,6 +604,23 @@ export function ClientDetailSheet({
                     {v.monitoramentos.map(monitResumo).join("; ")}
                   </div>
                 )}
+                {v.receituario.length > 0 && (
+                  <div className="vl-notes">
+                    <b>Receituário:</b>{" "}
+                    {v.receituario
+                      .map(
+                        (r) =>
+                          r.produto +
+                          (r.dose
+                            ? " (" +
+                              r.dose +
+                              (r.unidade ? " " + r.unidade : "") +
+                              ")"
+                            : "")
+                      )
+                      .join("; ")}
+                  </div>
+                )}
                 {v.nextReturnDate && (
                   <div className="vl-notes" style={{ color: "var(--clay)" }}>
                     Retorno: {fmtDate(v.nextReturnDate)}

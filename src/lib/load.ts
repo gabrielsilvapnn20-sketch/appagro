@@ -4,6 +4,7 @@ import {
   clientFromRow,
   monitoramentoFromRow,
   oppFromRow,
+  recomendacaoFromRow,
   talhaoFromRow,
   visitFromRow,
 } from "@/lib/mappers";
@@ -39,6 +40,8 @@ export async function loadAppData(): Promise<{
       supabase.from("org_settings").select("*").maybeSingle(),
     ]);
 
+  const recsRes = await supabase.from("recomendacoes").select("*");
+
   const clients = (clientsRes.data ?? []).map(clientFromRow);
   const visits = (visitsRes.data ?? []).map(visitFromRow);
   const opportunities = (oppsRes.data ?? []).map(oppFromRow);
@@ -55,6 +58,19 @@ export async function loadAppData(): Promise<{
   });
   visits.forEach((v) => {
     v.monitoramentos = monitsByVisit.get(v.id) ?? [];
+  });
+
+  // agrupa receituário por visita
+  const recsByVisit = new Map<string, ReturnType<typeof recomendacaoFromRow>[]>();
+  (recsRes.data ?? []).forEach((row) => {
+    const vid = row.visit_id as string | null;
+    if (!vid) return;
+    const arr = recsByVisit.get(vid) ?? [];
+    arr.push(recomendacaoFromRow(row));
+    recsByVisit.set(vid, arr);
+  });
+  visits.forEach((v) => {
+    v.receituario = recsByVisit.get(v.id) ?? [];
   });
 
   // resolve URLs assinadas das fotos em lote

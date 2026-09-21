@@ -6,6 +6,7 @@ import {
   clientToRow,
   monitoramentoFromRow,
   oppFromRow,
+  recomendacaoFromRow,
   talhaoFromRow,
   talhaoToRow,
   visitFromRow,
@@ -14,6 +15,7 @@ import type {
   Client,
   Monitoramento,
   Opportunity,
+  Recomendacao,
   Settings,
   StageKey,
   Talhao,
@@ -166,7 +168,8 @@ export async function saveVisit(
     recomendacoes: string;
   },
   files: File[],
-  monitoramentos: Monitoramento[] = []
+  monitoramentos: Monitoramento[] = [],
+  receituario: Recomendacao[] = []
 ): Promise<Visit> {
   const supabase = createClient();
   const id = newId();
@@ -227,6 +230,29 @@ export async function saveVisit(
       )
       .select();
     visit.monitoramentos = (mOut ?? []).map(monitoramentoFromRow);
+  }
+
+  // receituário (produtos recomendados) ligado a esta visita
+  const recs = receituario.filter((r) => r.produto.trim());
+  if (recs.length) {
+    const { data: rOut } = await supabase
+      .from("recomendacoes")
+      .insert(
+        recs.map((r) => ({
+          organization_id: organizationId,
+          visit_id: id,
+          client_id: data.clientId,
+          talhao_id: data.talhaoId || null,
+          produto: r.produto.trim(),
+          dose: r.dose === "" ? null : Number(r.dose),
+          unidade: r.unidade || null,
+          alvo: r.alvo || null,
+          observacoes: r.obs || null,
+          data: data.date,
+        }))
+      )
+      .select();
+    visit.receituario = (rOut ?? []).map(recomendacaoFromRow);
   }
 
   return visit;

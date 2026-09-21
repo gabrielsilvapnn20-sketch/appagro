@@ -6,6 +6,7 @@ import {
   type Client,
   type Opportunity,
   type Monitoramento,
+  type Recomendacao,
   type Settings,
   type TabKey,
   type Talhao,
@@ -271,10 +272,18 @@ export function AppRoot({
       recomendacoes: string;
     },
     files: File[],
-    monitoramentos: Monitoramento[]
+    monitoramentos: Monitoramento[],
+    receituario: Recomendacao[]
   ): Promise<boolean> {
     try {
-      const visit = await saveVisit(orgId, userId, data, files, monitoramentos);
+      const visit = await saveVisit(
+        orgId,
+        userId,
+        data,
+        files,
+        monitoramentos,
+        receituario
+      );
       setVisits((prev) => [visit, ...prev]);
       toast("Visita registrada");
       setTimeout(() => setSheet({ kind: "report", visit }), 150);

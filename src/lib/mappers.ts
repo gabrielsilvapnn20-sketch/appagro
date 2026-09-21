@@ -4,10 +4,24 @@ import type {
   MonitTipo,
   Monitoramento,
   Opportunity,
+  Recomendacao,
   Talhao,
   Visit,
   VisitPhoto,
 } from "./domain";
+
+export function recomendacaoFromRow(
+  r: Record<string, unknown>
+): Recomendacao {
+  return {
+    id: r.id as string,
+    produto: (r.produto as string) ?? "",
+    dose: r.dose == null ? "" : String(r.dose),
+    unidade: (r.unidade as string) ?? "",
+    alvo: (r.alvo as string) ?? "",
+    obs: (r.observacoes as string) ?? "",
+  };
+}
 
 export function monitoramentoFromRow(
   r: Record<string, unknown>
@@ -106,6 +120,7 @@ export function visitFromRow(r: Record<string, unknown>): Visit {
     recomendacoes: (r.recomendacoes as string) ?? "",
     photos: Array.isArray(fotos) ? fotos : [],
     monitoramentos: [],
+    receituario: [],
     createdAt: (r.criado_em as string) ?? "",
   };
 }

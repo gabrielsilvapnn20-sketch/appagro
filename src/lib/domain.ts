@@ -86,6 +86,24 @@ export type Monitoramento = {
   obs: string;
 };
 
+export const UNIDADES_DOSE = [
+  "L/ha",
+  "kg/ha",
+  "mL/ha",
+  "g/ha",
+  "L/100L",
+  "dose/ha",
+];
+
+export type Recomendacao = {
+  id: string;
+  produto: string;
+  dose: string;
+  unidade: string;
+  alvo: string;
+  obs: string;
+};
+
 export type Client = {
   id: string;
   nome: string;
@@ -127,6 +145,7 @@ export type Visit = {
   recomendacoes: string;
   photos: VisitPhoto[];
   monitoramentos: Monitoramento[];
+  receituario: Recomendacao[];
   createdAt: string;
 };
 
