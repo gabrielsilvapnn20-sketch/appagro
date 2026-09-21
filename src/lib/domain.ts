@@ -61,6 +61,31 @@ export const CALENDARIO_SAFRA: {
 
 export type VisitPhoto = { path: string; url?: string };
 
+export type MonitTipo = "praga" | "doenca" | "daninha";
+
+export const TIPOS_MONITORAMENTO: { key: MonitTipo; label: string }[] = [
+  { key: "praga", label: "Praga" },
+  { key: "doenca", label: "Doença" },
+  { key: "daninha", label: "Planta daninha" },
+];
+
+export const UNIDADES_MONITORAMENTO = [
+  "%",
+  "indiv./m",
+  "indiv./planta",
+  "pontos/m",
+  "nota (0-5)",
+];
+
+export type Monitoramento = {
+  id: string;
+  tipo: MonitTipo;
+  alvo: string;
+  nivel: string;
+  unidade: string;
+  obs: string;
+};
+
 export type Client = {
   id: string;
   nome: string;
@@ -101,6 +126,7 @@ export type Visit = {
   notas: string;
   recomendacoes: string;
   photos: VisitPhoto[];
+  monitoramentos: Monitoramento[];
   createdAt: string;
 };
 

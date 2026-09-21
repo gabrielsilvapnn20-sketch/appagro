@@ -5,6 +5,7 @@ import {
   STAGES,
   type Client,
   type Opportunity,
+  type Monitoramento,
   type Settings,
   type TabKey,
   type Talhao,
@@ -269,10 +270,11 @@ export function AppRoot({
       notas: string;
       recomendacoes: string;
     },
-    files: File[]
+    files: File[],
+    monitoramentos: Monitoramento[]
   ): Promise<boolean> {
     try {
-      const visit = await saveVisit(orgId, userId, data, files);
+      const visit = await saveVisit(orgId, userId, data, files, monitoramentos);
       setVisits((prev) => [visit, ...prev]);
       toast("Visita registrada");
       setTimeout(() => setSheet({ kind: "report", visit }), 150);

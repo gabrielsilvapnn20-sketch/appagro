@@ -3,12 +3,20 @@
 import { useEffect, useRef, useState } from "react";
 import {
   FASES_LAVOURA,
+  TIPOS_MONITORAMENTO,
+  UNIDADES_MONITORAMENTO,
   type Client,
+  type MonitTipo,
+  type Monitoramento,
   type Talhao,
   type Visit,
 } from "@/lib/domain";
 import { fmtDate, todayStr } from "@/lib/format";
 import { IconCamera, IconVisitEmpty } from "./icons";
+
+function tipoLabel(tipo: MonitTipo): string {
+  return (TIPOS_MONITORAMENTO.find((t) => t.key === tipo) || {}).label || tipo;
+}
 
 type Pending = { file: File; previewUrl: string };
 
@@ -35,7 +43,8 @@ export function VisitaScreen({
       notas: string;
       recomendacoes: string;
     },
-    files: File[]
+    files: File[],
+    monitoramentos: Monitoramento[]
   ) => Promise<boolean>;
   onOpenReport: (v: Visit) => void;
   toast: (m: string) => void;
@@ -50,6 +59,37 @@ export function VisitaScreen({
   const [pending, setPending] = useState<Pending[]>([]);
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // monitoramento (sub-formulário)
+  const [monits, setMonits] = useState<Monitoramento[]>([]);
+  const [mTipo, setMTipo] = useState<MonitTipo>("praga");
+  const [mAlvo, setMAlvo] = useState("");
+  const [mNivel, setMNivel] = useState("");
+  const [mUnidade, setMUnidade] = useState(UNIDADES_MONITORAMENTO[0]);
+
+  function addMonit() {
+    if (!mAlvo.trim()) {
+      toast("Informe o alvo do monitoramento");
+      return;
+    }
+    setMonits((prev) => [
+      ...prev,
+      {
+        id: "m" + Date.now() + Math.random().toString(36).slice(2, 6),
+        tipo: mTipo,
+        alvo: mAlvo.trim(),
+        nivel: mNivel,
+        unidade: mUnidade,
+        obs: "",
+      },
+    ]);
+    setMAlvo("");
+    setMNivel("");
+  }
+
+  function removeMonit(id: string) {
+    setMonits((prev) => prev.filter((m) => m.id !== id));
+  }
 
   useEffect(() => {
     if (presetClientId) setClientId(presetClientId);
@@ -105,7 +145,8 @@ export function VisitaScreen({
         notas: notas.trim(),
         recomendacoes: recomendacoes.trim(),
       },
-      pending.map((p) => p.file)
+      pending.map((p) => p.file),
+      monits
     );
     setSaving(false);
     if (ok) {
@@ -117,6 +158,7 @@ export function VisitaScreen({
       setNotas("");
       setRecomendacoes("");
       setPending([]);
+      setMonits([]);
     }
   }
 
@@ -214,6 +256,90 @@ export function VisitaScreen({
           value={recomendacoes}
           onChange={(e) => setRecomendacoes(e.target.value)}
         />
+        <label>Monitoramento (pragas, doenças, daninhas)</label>
+        {monits.length > 0 && (
+          <div style={{ marginBottom: 10 }}>
+            {monits.map((m) => (
+              <div
+                key={m.id}
+                className="oppcard"
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 6,
+                }}
+              >
+                <div style={{ fontSize: 13 }}>
+                  <b style={{ fontWeight: 700 }}>{tipoLabel(m.tipo)}</b> ·{" "}
+                  {m.alvo}
+                  {m.nivel
+                    ? " — " + m.nivel + (m.unidade ? " " + m.unidade : "")
+                    : ""}
+                </div>
+                <button
+                  type="button"
+                  aria-label="Remover"
+                  onClick={() => removeMonit(m.id)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--danger)",
+                    fontSize: 20,
+                    cursor: "pointer",
+                    lineHeight: 1,
+                    padding: "0 4px",
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <select
+            className="select"
+            value={mTipo}
+            onChange={(e) => setMTipo(e.target.value as MonitTipo)}
+          >
+            {TIPOS_MONITORAMENTO.map((t) => (
+              <option key={t.key} value={t.key}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+          <input
+            className="input"
+            placeholder="Alvo (ex: percevejo, ferrugem, buva)"
+            value={mAlvo}
+            onChange={(e) => setMAlvo(e.target.value)}
+          />
+          <div className="row2">
+            <input
+              className="input"
+              type="number"
+              placeholder="Nível"
+              value={mNivel}
+              onChange={(e) => setMNivel(e.target.value)}
+            />
+            <select
+              className="select"
+              value={mUnidade}
+              onChange={(e) => setMUnidade(e.target.value)}
+            >
+              {UNIDADES_MONITORAMENTO.map((u) => (
+                <option key={u} value={u}>
+                  {u}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button type="button" className="btn btn-block" onClick={addMonit}>
+            + Adicionar ocorrência
+          </button>
+        </div>
+
         <label>Fotos</label>
         <div className="file-btn" onClick={() => fileRef.current?.click()}>
           <IconCamera />

@@ -1,5 +1,10 @@
 // Utilitários — portados verbatim do protótipo sulco.html.
-import { FASES_LAVOURA, type Client, type Visit } from "./domain";
+import {
+  FASES_LAVOURA,
+  TIPOS_MONITORAMENTO,
+  type Client,
+  type Visit,
+} from "./domain";
 
 export function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
@@ -85,6 +90,19 @@ export function buildReport(v: Visit, c?: Client, talhaoNome?: string): string {
   if (v.notas) {
     lines.push("Assunto tratado:");
     lines.push(v.notas);
+    lines.push("");
+  }
+  if (v.monitoramentos && v.monitoramentos.length) {
+    lines.push("Monitoramento:");
+    v.monitoramentos.forEach((m) => {
+      const label =
+        (TIPOS_MONITORAMENTO.find((t) => t.key === m.tipo) || {}).label ||
+        m.tipo;
+      const nivel = m.nivel
+        ? " — " + m.nivel + (m.unidade ? " " + m.unidade : "")
+        : "";
+      lines.push("- [" + label + "] " + m.alvo + nivel);
+    });
     lines.push("");
   }
   if (v.recomendacoes) {

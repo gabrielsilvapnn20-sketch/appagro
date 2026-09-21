@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   clientFromRow,
   clientToRow,
+  monitoramentoFromRow,
   oppFromRow,
   talhaoFromRow,
   talhaoToRow,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/mappers";
 import type {
   Client,
+  Monitoramento,
   Opportunity,
   Settings,
   StageKey,
@@ -163,7 +165,8 @@ export async function saveVisit(
     notas: string;
     recomendacoes: string;
   },
-  files: File[]
+  files: File[],
+  monitoramentos: Monitoramento[] = []
 ): Promise<Visit> {
   const supabase = createClient();
   const id = newId();
@@ -202,6 +205,30 @@ export async function saveVisit(
   const visit = visitFromRow(out);
   // devolve com as URLs assinadas já resolvidas para exibir na hora
   visit.photos = photos;
+
+  // monitoramentos ligados a esta visita
+  const monits = monitoramentos.filter((m) => m.alvo.trim());
+  if (monits.length) {
+    const { data: mOut } = await supabase
+      .from("monitoramentos")
+      .insert(
+        monits.map((m) => ({
+          organization_id: organizationId,
+          visit_id: id,
+          client_id: data.clientId,
+          talhao_id: data.talhaoId || null,
+          tipo: m.tipo,
+          alvo: m.alvo.trim(),
+          nivel: m.nivel === "" ? null : Number(m.nivel),
+          unidade: m.unidade || null,
+          observacoes: m.obs || null,
+          data: data.date,
+        }))
+      )
+      .select();
+    visit.monitoramentos = (mOut ?? []).map(monitoramentoFromRow);
+  }
+
   return visit;
 }
 

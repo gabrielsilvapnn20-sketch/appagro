@@ -2,6 +2,7 @@
 import { createClient } from "@/lib/supabase/server";
 import {
   clientFromRow,
+  monitoramentoFromRow,
   oppFromRow,
   talhaoFromRow,
   visitFromRow,
@@ -25,7 +26,7 @@ export async function loadAppData(): Promise<{
 }> {
   const supabase = await createClient();
 
-  const [clientsRes, visitsRes, oppsRes, talhoesRes, settingsRes] =
+  const [clientsRes, visitsRes, oppsRes, talhoesRes, monitsRes, settingsRes] =
     await Promise.all([
       supabase.from("clients").select("*").order("nome", { ascending: true }),
       supabase.from("visits").select("*").order("data", { ascending: false }),
@@ -34,6 +35,7 @@ export async function loadAppData(): Promise<{
         .select("*")
         .order("criado_em", { ascending: false }),
       supabase.from("talhoes").select("*").order("nome", { ascending: true }),
+      supabase.from("monitoramentos").select("*"),
       supabase.from("org_settings").select("*").maybeSingle(),
     ]);
 
@@ -41,6 +43,19 @@ export async function loadAppData(): Promise<{
   const visits = (visitsRes.data ?? []).map(visitFromRow);
   const opportunities = (oppsRes.data ?? []).map(oppFromRow);
   const talhoes = (talhoesRes.data ?? []).map(talhaoFromRow);
+
+  // agrupa monitoramentos por visita
+  const monitsByVisit = new Map<string, ReturnType<typeof monitoramentoFromRow>[]>();
+  (monitsRes.data ?? []).forEach((row) => {
+    const vid = row.visit_id as string | null;
+    if (!vid) return;
+    const arr = monitsByVisit.get(vid) ?? [];
+    arr.push(monitoramentoFromRow(row));
+    monitsByVisit.set(vid, arr);
+  });
+  visits.forEach((v) => {
+    v.monitoramentos = monitsByVisit.get(v.id) ?? [];
+  });
 
   // resolve URLs assinadas das fotos em lote
   const allPaths = visits.flatMap((v) => v.photos.map((p) => p.path));

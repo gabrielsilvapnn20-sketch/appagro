@@ -4,13 +4,24 @@ import { useEffect, useState } from "react";
 import {
   FASES_LAVOURA,
   STAGES,
+  TIPOS_MONITORAMENTO,
   type Client,
+  type Monitoramento,
   type Opportunity,
   type Settings,
   type StageKey,
   type Talhao,
   type Visit,
 } from "@/lib/domain";
+
+function monitResumo(m: Monitoramento): string {
+  const label =
+    (TIPOS_MONITORAMENTO.find((t) => t.key === m.tipo) || {}).label || m.tipo;
+  const nivel = m.nivel
+    ? " (" + m.nivel + (m.unidade ? " " + m.unidade : "") + ")"
+    : "";
+  return label + " " + m.alvo + nivel;
+}
 import {
   buildClientCard,
   buildReport,
@@ -585,6 +596,12 @@ export function ClientDetailSheet({
                 {v.recomendacoes && (
                   <div className="vl-notes">
                     <b>Recomendação:</b> {v.recomendacoes}
+                  </div>
+                )}
+                {v.monitoramentos.length > 0 && (
+                  <div className="vl-notes">
+                    <b>Monitoramento:</b>{" "}
+                    {v.monitoramentos.map(monitResumo).join("; ")}
                   </div>
                 )}
                 {v.nextReturnDate && (

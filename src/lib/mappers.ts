@@ -1,5 +1,26 @@
 // Conversão entre linhas do Postgres (snake_case) e os tipos de aplicação.
-import type { Client, Opportunity, Talhao, Visit, VisitPhoto } from "./domain";
+import type {
+  Client,
+  MonitTipo,
+  Monitoramento,
+  Opportunity,
+  Talhao,
+  Visit,
+  VisitPhoto,
+} from "./domain";
+
+export function monitoramentoFromRow(
+  r: Record<string, unknown>
+): Monitoramento {
+  return {
+    id: r.id as string,
+    tipo: (r.tipo as MonitTipo) ?? "praga",
+    alvo: (r.alvo as string) ?? "",
+    nivel: r.nivel == null ? "" : String(r.nivel),
+    unidade: (r.unidade as string) ?? "",
+    obs: (r.observacoes as string) ?? "",
+  };
+}
 
 export function clientFromRow(r: Record<string, unknown>): Client {
   return {
@@ -84,6 +105,7 @@ export function visitFromRow(r: Record<string, unknown>): Visit {
     notas: (r.notas as string) ?? "",
     recomendacoes: (r.recomendacoes as string) ?? "",
     photos: Array.isArray(fotos) ? fotos : [],
+    monitoramentos: [],
     createdAt: (r.criado_em as string) ?? "",
   };
 }
