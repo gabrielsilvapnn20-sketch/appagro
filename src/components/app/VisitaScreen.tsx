@@ -126,6 +126,52 @@ export function VisitaScreen({
     setRecs((prev) => prev.filter((r) => r.id !== id));
   }
 
+  // assistente de IA
+  const [aiBusy, setAiBusy] = useState(false);
+  async function sugerirIA() {
+    if (!clientId) {
+      toast("Selecione um cliente");
+      return;
+    }
+    if (!notas.trim() && monits.length === 0) {
+      toast("Escreva o que foi conversado ou registre um monitoramento");
+      return;
+    }
+    setAiBusy(true);
+    try {
+      const { assistirVisita } = await import("@/app/ai/actions");
+      const c = clients.find((x) => x.id === clientId);
+      const t = talhoes.find((x) => x.id === talhaoId);
+      const faseLbl = (FASES_LAVOURA.find((f) => f.key === fase) || {}).label || "";
+      const res = await assistirVisita({
+        clienteNome: c?.nome || "",
+        cultura: (c?.culturas || []).join(", "),
+        talhao: t?.nome || "",
+        fase: faseLbl,
+        notas: notas.trim(),
+        monitoramentos: monits.map((m) => ({
+          tipo: m.tipo,
+          alvo: m.alvo,
+          nivel: m.nivel,
+          unidade: m.unidade,
+        })),
+      });
+      if (res.error) {
+        toast(res.error);
+      } else {
+        if (res.recomendacao)
+          setRecomendacoes((prev) =>
+            prev.trim() ? prev + "\n\n" + res.recomendacao : res.recomendacao!
+          );
+        if (res.resumo && !notas.trim()) setNotas(res.resumo);
+        toast("Sugestão gerada pela IA");
+      }
+    } catch {
+      toast("Não foi possível gerar a sugestão");
+    }
+    setAiBusy(false);
+  }
+
   useEffect(() => {
     if (presetClientId) setClientId(presetClientId);
   }, [presetClientId]);
@@ -376,6 +422,16 @@ export function VisitaScreen({
             + Adicionar ocorrência
           </button>
         </div>
+
+        <button
+          type="button"
+          className="btn btn-block"
+          style={{ marginTop: 10 }}
+          onClick={sugerirIA}
+          disabled={aiBusy}
+        >
+          {aiBusy ? "Gerando..." : "✨ Sugerir resumo e recomendação com IA"}
+        </button>
 
         <label>Produtos recomendados (receituário)</label>
         {recs.length > 0 && (

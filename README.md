@@ -17,9 +17,10 @@ e adicionando login/cadastro, escopo por organização (RLS) e painel de adminis
    ```bash
    npm install
    ```
-2. Crie um projeto no [Supabase](https://supabase.com) e rode as migrations em
-   `supabase/migrations/` na ordem (`0001` → `0004`), pelo SQL Editor ou pela
-   Supabase CLI.
+2. Crie um projeto no [Supabase](https://supabase.com) e rode o schema. O jeito
+   mais rápido: abra o **SQL Editor** do Supabase e cole o conteúdo de
+   `supabase/schema.sql` (todas as migrations juntas) e execute. Alternativa:
+   rodar `supabase/migrations/0001` → `0008` na ordem.
 3. Em **Authentication → Providers → Email**, deixe *Confirm email* **desligado**
    (padrão deste projeto; se ligar, o fluxo de confirmação em `/auth/confirm` já
    está pronto).
@@ -74,6 +75,15 @@ values ('<uuid-do-usuario-em-auth.users>');
    `NEXT_PUBLIC_SUPABASE_ANON_KEY` (e `SUPABASE_SERVICE_ROLE_KEY` se for usar).
 3. Em **Authentication → URL Configuration** do Supabase, adicione a URL da Vercel
    nas *Redirect URLs*.
+
+## Assistente de IA
+
+Na tela de visita, o botão **"Sugerir resumo e recomendação com IA"** usa a API
+da Anthropic (Claude) para resumir o que foi tratado e sugerir a recomendação
+técnica a partir das anotações e do monitoramento. Requer `ANTHROPIC_API_KEY`
+no servidor; o modelo padrão é `claude-opus-5` (ajustável via `ANTHROPIC_MODEL`,
+ex.: `claude-haiku-4-5` para custo menor). Sem a chave, o botão apenas avisa que
+a IA precisa ser configurada.
 
 ## Cobrança (Stripe)
 
