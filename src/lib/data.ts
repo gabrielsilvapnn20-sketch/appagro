@@ -5,6 +5,8 @@ import {
   clientFromRow,
   clientToRow,
   oppFromRow,
+  talhaoFromRow,
+  talhaoToRow,
   visitFromRow,
 } from "@/lib/mappers";
 import type {
@@ -12,6 +14,7 @@ import type {
   Opportunity,
   Settings,
   StageKey,
+  Talhao,
   Visit,
   VisitPhoto,
 } from "@/lib/domain";
@@ -108,6 +111,38 @@ export async function moveOpportunity(
   if (error) throw error;
 }
 
+export async function saveTalhao(
+  organizationId: string,
+  id: string | null,
+  data: Partial<Talhao>
+): Promise<Talhao> {
+  const supabase = createClient();
+  const row = talhaoToRow(data, organizationId);
+  if (id) {
+    const { data: out, error } = await supabase
+      .from("talhoes")
+      .update(row)
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) throw error;
+    return talhaoFromRow(out);
+  }
+  const { data: out, error } = await supabase
+    .from("talhoes")
+    .insert(row)
+    .select()
+    .single();
+  if (error) throw error;
+  return talhaoFromRow(out);
+}
+
+export async function deleteTalhao(id: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.from("talhoes").delete().eq("id", id);
+  if (error) throw error;
+}
+
 async function signedUrl(path: string): Promise<string | undefined> {
   const supabase = createClient();
   const { data } = await supabase.storage
@@ -121,6 +156,7 @@ export async function saveVisit(
   userId: string | null,
   data: {
     clientId: string;
+    talhaoId: string;
     date: string;
     nextReturnDate: string;
     fase: string;
@@ -150,6 +186,7 @@ export async function saveVisit(
       id,
       organization_id: organizationId,
       client_id: data.clientId,
+      talhao_id: data.talhaoId || null,
       user_id: userId,
       data: data.date,
       proximo_retorno: data.nextReturnDate || null,

@@ -7,15 +7,18 @@ import {
   type Opportunity,
   type Settings,
   type TabKey,
+  type Talhao,
   type Visit,
 } from "@/lib/domain";
 import {
   deleteClient,
   deleteOpportunity,
+  deleteTalhao,
   moveOpportunity,
   saveClient,
   saveOpportunity,
   saveSettings,
+  saveTalhao,
   saveVisit,
 } from "@/lib/data";
 import { logout } from "@/app/auth/actions";
@@ -37,12 +40,19 @@ import {
   GoalsSheet,
   OppFormSheet,
   ReportSheet,
+  TalhaoFormSheet,
 } from "./Sheets";
 
 type Sheet =
   | { kind: "clientForm"; client: Client | null; returnToDetail: boolean }
   | { kind: "clientDetail"; clientId: string }
   | { kind: "oppForm"; opp: Opportunity | null; presetClientId?: string }
+  | {
+      kind: "talhaoForm";
+      talhao: Talhao | null;
+      clientId: string;
+      returnClientId: string;
+    }
   | { kind: "goals" }
   | { kind: "report"; visit: Visit }
   | { kind: "account" }
@@ -59,6 +69,7 @@ export type AppRootProps = {
     clients: Client[];
     visits: Visit[];
     opportunities: Opportunity[];
+    talhoes: Talhao[];
     settings: Settings;
   };
 };
@@ -86,6 +97,7 @@ export function AppRoot({
   const [opportunities, setOpportunities] = useState<Opportunity[]>(
     initial.opportunities
   );
+  const [talhoes, setTalhoes] = useState<Talhao[]>(initial.talhoes);
   const [settings, setSettings] = useState<Settings>(initial.settings);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [search, setSearch] = useState("");
@@ -194,6 +206,46 @@ export function AppRoot({
     }
   }
 
+  // ------- talhões
+  async function submitTalhao(id: string | null, data: Partial<Talhao>) {
+    const returnClientId =
+      sheet?.kind === "talhaoForm" ? sheet.returnClientId : "";
+    try {
+      const saved = await saveTalhao(orgId, id, data);
+      setTalhoes((prev) => {
+        const exists = prev.some((t) => t.id === saved.id);
+        return exists
+          ? prev.map((t) => (t.id === saved.id ? saved : t))
+          : [...prev, saved];
+      });
+      toast(id ? "Talhão atualizado" : "Talhão cadastrado");
+      if (returnClientId) {
+        setSheet({ kind: "clientDetail", clientId: returnClientId });
+      } else {
+        setSheet(null);
+      }
+    } catch {
+      toast("Não foi possível salvar o talhão");
+    }
+  }
+
+  async function removeTalhao(id: string) {
+    const returnClientId =
+      sheet?.kind === "talhaoForm" ? sheet.returnClientId : "";
+    try {
+      await deleteTalhao(id);
+      setTalhoes((prev) => prev.filter((t) => t.id !== id));
+      if (returnClientId) {
+        setSheet({ kind: "clientDetail", clientId: returnClientId });
+      } else {
+        setSheet(null);
+      }
+      toast("Talhão excluído");
+    } catch {
+      toast("Não foi possível excluir");
+    }
+  }
+
   // ------- goals
   async function submitGoals(s: Settings) {
     setSettings(s);
@@ -210,6 +262,7 @@ export function AppRoot({
   async function saveVisitH(
     data: {
       clientId: string;
+      talhaoId: string;
       date: string;
       nextReturnDate: string;
       fase: string;
@@ -289,6 +342,7 @@ export function AppRoot({
           <VisitaScreen
             clients={clients}
             visits={visits}
+            talhoes={talhoes}
             presetClientId={visitPreset}
             onSave={saveVisitH}
             onOpenReport={(v) => setSheet({ kind: "report", visit: v })}
@@ -358,6 +412,7 @@ export function AppRoot({
               client={detailClient}
               visits={visits}
               opportunities={opportunities}
+              talhoes={talhoes}
               onClose={() => setSheet(null)}
               onEdit={() =>
                 setSheet({
@@ -374,6 +429,22 @@ export function AppRoot({
                   presetClientId: detailClient.id,
                 })
               }
+              onAddTalhao={() =>
+                setSheet({
+                  kind: "talhaoForm",
+                  talhao: null,
+                  clientId: detailClient.id,
+                  returnClientId: detailClient.id,
+                })
+              }
+              onOpenTalhao={(t) =>
+                setSheet({
+                  kind: "talhaoForm",
+                  talhao: t,
+                  clientId: detailClient.id,
+                  returnClientId: detailClient.id,
+                })
+              }
               toast={toast}
             />
           )}
@@ -388,6 +459,17 @@ export function AppRoot({
               toast={toast}
             />
           )}
+          {sheet?.kind === "talhaoForm" && (
+            <TalhaoFormSheet
+              talhao={sheet.talhao}
+              clientId={sheet.clientId}
+              clientNome={clientById(sheet.clientId)?.nome ?? ""}
+              onClose={() => setSheet(null)}
+              onSubmit={submitTalhao}
+              onDelete={removeTalhao}
+              toast={toast}
+            />
+          )}
           {sheet?.kind === "goals" && (
             <GoalsSheet
               settings={settings}
@@ -399,6 +481,9 @@ export function AppRoot({
             <ReportSheet
               visit={sheet.visit}
               client={clientById(sheet.visit.clientId)}
+              talhaoNome={
+                talhoes.find((t) => t.id === sheet.visit.talhaoId)?.nome
+              }
               onClose={() => setSheet(null)}
               toast={toast}
             />

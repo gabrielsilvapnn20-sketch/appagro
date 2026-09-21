@@ -75,9 +75,25 @@ export type Client = {
   createdAt: string;
 };
 
+export type Talhao = {
+  id: string;
+  clientId: string;
+  nome: string;
+  cultura: string;
+  variedade: string;
+  areaHa: string;
+  dataPlantio: string;
+  safra: string;
+  lat: number | null;
+  lng: number | null;
+  obs: string;
+  createdAt: string;
+};
+
 export type Visit = {
   id: string;
   clientId: string;
+  talhaoId: string | null;
   userId: string | null;
   date: string;
   nextReturnDate: string;

@@ -66,12 +66,13 @@ export function buildClientCard(c: Client, lastVisit?: Visit): string {
   return lines.join("\n");
 }
 
-export function buildReport(v: Visit, c?: Client): string {
+export function buildReport(v: Visit, c?: Client, talhaoNome?: string): string {
   const lines: string[] = [];
   lines.push("RELATÓRIO DE VISITA TÉCNICA");
   lines.push("Data: " + fmtDate(v.date));
   lines.push("Produtor: " + (c ? c.nome : "—"));
   if (c && c.fazenda) lines.push("Fazenda: " + c.fazenda);
+  if (talhaoNome) lines.push("Talhão: " + talhaoNome);
   if (c && c.regiao) lines.push("Região: " + c.regiao);
   if (c && c.culturas && c.culturas.length)
     lines.push("Culturas: " + c.culturas.join(", "));

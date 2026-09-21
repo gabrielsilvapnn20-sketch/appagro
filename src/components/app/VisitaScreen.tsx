@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FASES_LAVOURA, type Client, type Visit } from "@/lib/domain";
+import {
+  FASES_LAVOURA,
+  type Client,
+  type Talhao,
+  type Visit,
+} from "@/lib/domain";
 import { fmtDate, todayStr } from "@/lib/format";
 import { IconCamera, IconVisitEmpty } from "./icons";
 
@@ -10,6 +15,7 @@ type Pending = { file: File; previewUrl: string };
 export function VisitaScreen({
   clients,
   visits,
+  talhoes,
   presetClientId,
   onSave,
   onOpenReport,
@@ -17,10 +23,12 @@ export function VisitaScreen({
 }: {
   clients: Client[];
   visits: Visit[];
+  talhoes: Talhao[];
   presetClientId: string;
   onSave: (
     data: {
       clientId: string;
+      talhaoId: string;
       date: string;
       nextReturnDate: string;
       fase: string;
@@ -33,6 +41,7 @@ export function VisitaScreen({
   toast: (m: string) => void;
 }) {
   const [clientId, setClientId] = useState(presetClientId || "");
+  const [talhaoId, setTalhaoId] = useState("");
   const [date, setDate] = useState(todayStr());
   const [nextReturnDate, setNextReturnDate] = useState("");
   const [fase, setFase] = useState("");
@@ -48,6 +57,10 @@ export function VisitaScreen({
 
   const clientOptions = clients
     .slice()
+    .sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
+
+  const talhaoOptions = talhoes
+    .filter((t) => t.clientId === clientId)
     .sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
 
   const recent = visits
@@ -85,6 +98,7 @@ export function VisitaScreen({
     const ok = await onSave(
       {
         clientId,
+        talhaoId,
         date: date || todayStr(),
         nextReturnDate,
         fase,
@@ -96,6 +110,7 @@ export function VisitaScreen({
     setSaving(false);
     if (ok) {
       setClientId("");
+      setTalhaoId("");
       setDate(todayStr());
       setNextReturnDate("");
       setFase("");
@@ -115,7 +130,10 @@ export function VisitaScreen({
           className="select"
           id="visitClient"
           value={clientId}
-          onChange={(e) => setClientId(e.target.value)}
+          onChange={(e) => {
+            setClientId(e.target.value);
+            setTalhaoId("");
+          }}
         >
           <option value="">Selecione um cliente</option>
           {clientOptions.map((c) => (
@@ -125,6 +143,25 @@ export function VisitaScreen({
             </option>
           ))}
         </select>
+        {clientId && talhaoOptions.length > 0 && (
+          <>
+            <label htmlFor="visitTalhao">Talhão (opcional)</label>
+            <select
+              className="select"
+              id="visitTalhao"
+              value={talhaoId}
+              onChange={(e) => setTalhaoId(e.target.value)}
+            >
+              <option value="">Fazenda toda / não informar</option>
+              {talhaoOptions.map((t) => (
+                <option value={t.id} key={t.id}>
+                  {t.nome}
+                  {t.cultura ? " — " + t.cultura : ""}
+                </option>
+              ))}
+            </select>
+          </>
+        )}
         <div className="row2">
           <div>
             <label htmlFor="visitDate">Data</label>

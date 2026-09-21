@@ -8,6 +8,7 @@ import {
   type Opportunity,
   type Settings,
   type StageKey,
+  type Talhao,
   type Visit,
 } from "@/lib/domain";
 import {
@@ -202,30 +203,214 @@ export function ClientFormSheet({
   );
 }
 
+// ---------------------------------------------------------------- Talhão form
+export function TalhaoFormSheet({
+  talhao,
+  clientId,
+  clientNome,
+  onClose,
+  onSubmit,
+  onDelete,
+  toast,
+}: {
+  talhao: Talhao | null;
+  clientId: string;
+  clientNome: string;
+  onClose: () => void;
+  onSubmit: (id: string | null, data: Partial<Talhao>) => void;
+  onDelete: (id: string) => void;
+  toast: (m: string) => void;
+}) {
+  const isEdit = !!talhao;
+  const [nome, setNome] = useState(talhao?.nome ?? "");
+  const [cultura, setCultura] = useState(talhao?.cultura ?? "");
+  const [variedade, setVariedade] = useState(talhao?.variedade ?? "");
+  const [areaHa, setAreaHa] = useState(talhao?.areaHa ?? "");
+  const [dataPlantio, setDataPlantio] = useState(talhao?.dataPlantio ?? "");
+  const [safra, setSafra] = useState(talhao?.safra ?? "");
+  const [obs, setObs] = useState(talhao?.obs ?? "");
+  const [lat, setLat] = useState<number | null>(talhao?.lat ?? null);
+  const [lng, setLng] = useState<number | null>(talhao?.lng ?? null);
+  const [locLabel, setLocLabel] = useState(
+    talhao?.lat
+      ? "Localização salva · toque para atualizar"
+      : "Usar minha localização atual"
+  );
+
+  function captureLoc() {
+    if (!navigator.geolocation) {
+      toast("Este dispositivo não suporta localização");
+      return;
+    }
+    setLocLabel("Obtendo localização...");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLat(pos.coords.latitude);
+        setLng(pos.coords.longitude);
+        setLocLabel("Localização capturada agora");
+        toast("Localização salva neste talhão");
+      },
+      () => {
+        setLocLabel(
+          talhao?.lat
+            ? "Localização salva · toque para atualizar"
+            : "Usar minha localização atual"
+        );
+        toast("Não foi possível obter a localização");
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
+  function save() {
+    if (!nome.trim()) {
+      toast("Informe o nome do talhão");
+      return;
+    }
+    onSubmit(talhao?.id ?? null, {
+      clientId,
+      nome: nome.trim(),
+      cultura: cultura.trim(),
+      variedade: variedade.trim(),
+      areaHa: areaHa.trim(),
+      dataPlantio,
+      safra: safra.trim(),
+      lat,
+      lng,
+      obs: obs.trim(),
+    });
+  }
+
+  return (
+    <>
+      <SheetHead
+        title={isEdit ? "Editar talhão" : "Novo talhão"}
+        onClose={onClose}
+      />
+      <p className="subtitle" style={{ margin: "-2px 0 4px" }}>
+        {clientNome}
+      </p>
+      <label htmlFor="tNome">Nome do talhão</label>
+      <input
+        className="input"
+        id="tNome"
+        value={nome}
+        onChange={(e) => setNome(e.target.value)}
+        placeholder="Ex: Talhão 1, Gleba Norte"
+      />
+      <div className="row2">
+        <div>
+          <label htmlFor="tCultura">Cultura</label>
+          <input
+            className="input"
+            id="tCultura"
+            value={cultura}
+            onChange={(e) => setCultura(e.target.value)}
+            placeholder="soja, milho..."
+          />
+        </div>
+        <div>
+          <label htmlFor="tArea">Área (ha)</label>
+          <input
+            className="input"
+            type="number"
+            id="tArea"
+            value={areaHa}
+            onChange={(e) => setAreaHa(e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="row2">
+        <div>
+          <label htmlFor="tVariedade">Variedade / cultivar</label>
+          <input
+            className="input"
+            id="tVariedade"
+            value={variedade}
+            onChange={(e) => setVariedade(e.target.value)}
+          />
+        </div>
+        <div>
+          <label htmlFor="tSafra">Safra</label>
+          <input
+            className="input"
+            id="tSafra"
+            value={safra}
+            onChange={(e) => setSafra(e.target.value)}
+            placeholder="Ex: 2025/26"
+          />
+        </div>
+      </div>
+      <label htmlFor="tData">Data de plantio</label>
+      <input
+        className="input"
+        type="date"
+        id="tData"
+        value={dataPlantio}
+        onChange={(e) => setDataPlantio(e.target.value)}
+      />
+      <label>Localização do talhão</label>
+      <div className="file-btn" onClick={captureLoc}>
+        <IconPinCircle />
+        <span>{locLabel}</span>
+      </div>
+      <label htmlFor="tObs">Observações</label>
+      <textarea
+        className="textarea"
+        id="tObs"
+        value={obs}
+        onChange={(e) => setObs(e.target.value)}
+      />
+      <div className="btn-row">
+        {isEdit && (
+          <button
+            className="btn btn-danger"
+            onClick={() => onDelete(talhao!.id)}
+          >
+            Excluir
+          </button>
+        )}
+        <button className="btn btn-primary" style={{ flex: 1 }} onClick={save}>
+          Salvar
+        </button>
+      </div>
+    </>
+  );
+}
+
 // -------------------------------------------------------------- Client detail
 export function ClientDetailSheet({
   client,
   visits,
   opportunities,
+  talhoes,
   onClose,
   onEdit,
   onNewVisit,
   onAddOpp,
+  onAddTalhao,
+  onOpenTalhao,
   toast,
 }: {
   client: Client;
   visits: Visit[];
   opportunities: Opportunity[];
+  talhoes: Talhao[];
   onClose: () => void;
   onEdit: () => void;
   onNewVisit: () => void;
   onAddOpp: () => void;
+  onAddTalhao: () => void;
+  onOpenTalhao: (t: Talhao) => void;
   toast: (m: string) => void;
 }) {
   const clientVisits = visits
     .filter((v) => v.clientId === client.id)
     .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   const opps = opportunities.filter((o) => o.clientId === client.id);
+  const clientTalhoes = talhoes
+    .filter((t) => t.clientId === client.id)
+    .sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
   const lastV = clientVisits[0];
 
   function share() {
@@ -300,6 +485,52 @@ export function ClientDetailSheet({
       </button>
 
       <div className="section-head">
+        <h2>Talhões</h2>
+        <button className="link" onClick={onAddTalhao}>
+          + novo
+        </button>
+      </div>
+      {clientTalhoes.length ? (
+        <div className="card" style={{ padding: "4px 10px" }}>
+          {clientTalhoes.map((t) => {
+            const sub = [
+              t.cultura,
+              t.variedade,
+              t.areaHa ? t.areaHa + " ha" : "",
+            ]
+              .filter(Boolean)
+              .join(" · ");
+            return (
+              <div
+                className="client-item"
+                key={t.id}
+                onClick={() => onOpenTalhao(t)}
+              >
+                <div className="avatar">{(t.nome || "T")[0].toUpperCase()}</div>
+                <div className="meta">
+                  <div className="name">{t.nome}</div>
+                  <div className="sub">{sub || "sem detalhes"}</div>
+                </div>
+                <svg
+                  className="chev"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path d="m9 6 6 6-6 6" />
+                </svg>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="subtitle" style={{ margin: "0 0 10px" }}>
+          Nenhum talhão cadastrado.
+        </p>
+      )}
+
+      <div className="section-head">
         <h2>Oportunidades</h2>
         <button className="link" onClick={onAddOpp}>
           + nova
@@ -335,9 +566,13 @@ export function ClientDetailSheet({
             const faseLbl = (
               FASES_LAVOURA.find((f) => f.key === v.fase) || {}
             ).label;
+            const talh = clientTalhoes.find((t) => t.id === v.talhaoId);
             return (
               <div className="vl-item" key={v.id}>
-                <div className="vl-date">{fmtDate(v.date)}</div>
+                <div className="vl-date">
+                  {fmtDate(v.date)}
+                  {talh ? " · " + talh.nome : ""}
+                </div>
                 {v.fase && (
                   <span
                     className="chip gold"
@@ -536,15 +771,17 @@ export function GoalsSheet({
 export function ReportSheet({
   visit,
   client,
+  talhaoNome,
   onClose,
   toast,
 }: {
   visit: Visit;
   client?: Client;
+  talhaoNome?: string;
   onClose: () => void;
   toast: (m: string) => void;
 }) {
-  const report = buildReport(visit, client);
+  const report = buildReport(visit, client, talhaoNome);
 
   function copy() {
     if (navigator.clipboard) {

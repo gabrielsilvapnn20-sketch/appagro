@@ -1,5 +1,5 @@
 // Conversão entre linhas do Postgres (snake_case) e os tipos de aplicação.
-import type { Client, Opportunity, Visit, VisitPhoto } from "./domain";
+import type { Client, Opportunity, Talhao, Visit, VisitPhoto } from "./domain";
 
 export function clientFromRow(r: Record<string, unknown>): Client {
   return {
@@ -35,11 +35,48 @@ export function clientToRow(
   };
 }
 
+export function talhaoFromRow(r: Record<string, unknown>): Talhao {
+  return {
+    id: r.id as string,
+    clientId: r.client_id as string,
+    nome: (r.nome as string) ?? "",
+    cultura: (r.cultura as string) ?? "",
+    variedade: (r.variedade as string) ?? "",
+    areaHa: r.area_ha == null ? "" : String(r.area_ha),
+    dataPlantio: (r.data_plantio as string) ?? "",
+    safra: (r.safra as string) ?? "",
+    lat: r.lat == null ? null : Number(r.lat),
+    lng: r.lng == null ? null : Number(r.lng),
+    obs: (r.observacoes as string) ?? "",
+    createdAt: (r.criado_em as string) ?? "",
+  };
+}
+
+export function talhaoToRow(
+  t: Partial<Talhao>,
+  organizationId: string
+): Record<string, unknown> {
+  return {
+    organization_id: organizationId,
+    client_id: t.clientId,
+    nome: t.nome ?? "",
+    cultura: t.cultura || null,
+    variedade: t.variedade || null,
+    area_ha: t.areaHa ? Number(t.areaHa) : null,
+    data_plantio: t.dataPlantio || null,
+    safra: t.safra || null,
+    lat: t.lat ?? null,
+    lng: t.lng ?? null,
+    observacoes: t.obs || null,
+  };
+}
+
 export function visitFromRow(r: Record<string, unknown>): Visit {
   const fotos = (r.fotos as VisitPhoto[] | null) ?? [];
   return {
     id: r.id as string,
     clientId: r.client_id as string,
+    talhaoId: (r.talhao_id as string) ?? null,
     userId: (r.user_id as string) ?? null,
     date: (r.data as string) ?? "",
     nextReturnDate: (r.proximo_retorno as string) ?? "",
