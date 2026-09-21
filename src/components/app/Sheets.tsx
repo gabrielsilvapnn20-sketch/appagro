@@ -6,6 +6,7 @@ import {
   STAGES,
   TIPOS_MONITORAMENTO,
   type Client,
+  type Member,
   type Monitoramento,
   type Opportunity,
   type Settings,
@@ -876,6 +877,7 @@ export function AccountSheet({
   papel,
   onClose,
   onLogout,
+  onEquipe,
 }: {
   orgNome: string;
   userNome: string;
@@ -883,6 +885,7 @@ export function AccountSheet({
   papel: string;
   onClose: () => void;
   onLogout: () => void;
+  onEquipe: () => void;
 }) {
   return (
     <>
@@ -899,6 +902,15 @@ export function AccountSheet({
         <div className="k">EMAIL</div>
         {email}
       </div>
+      {papel === "dono" && (
+        <button
+          className="btn btn-block"
+          style={{ marginTop: 8 }}
+          onClick={onEquipe}
+        >
+          Equipe
+        </button>
+      )}
       <div className="btn-row">
         <button
           className="btn btn-danger btn-block"
@@ -908,6 +920,127 @@ export function AccountSheet({
           Sair da conta
         </button>
       </div>
+    </>
+  );
+}
+
+// -------------------------------------------------------------------- Equipe
+export function EquipeSheet({
+  members,
+  isOwner,
+  onClose,
+  onInvited,
+  toast,
+}: {
+  members: Member[];
+  isOwner: boolean;
+  onClose: () => void;
+  onInvited: (m: Member) => void;
+  toast: (msg: string) => void;
+}) {
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [tempPass, setTempPass] = useState<{ email: string; senha: string } | null>(
+    null
+  );
+
+  async function convidar() {
+    if (!nome.trim() || !email.trim()) {
+      toast("Preencha nome e email");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { inviteRtv } = await import("@/app/team/actions");
+      const res = await inviteRtv(nome, email);
+      if (res.error) {
+        toast(res.error);
+      } else if (res.member && res.tempPassword) {
+        onInvited(res.member);
+        setTempPass({ email: res.member.email, senha: res.tempPassword });
+        setNome("");
+        setEmail("");
+        toast("RTV adicionado");
+      }
+    } catch {
+      toast("Não foi possível adicionar o RTV");
+    }
+    setBusy(false);
+  }
+
+  return (
+    <>
+      <SheetHead title="Equipe" onClose={onClose} />
+
+      <div className="card" style={{ padding: "4px 10px" }}>
+        {members
+          .slice()
+          .sort((a, b) => (a.nome || "").localeCompare(b.nome || ""))
+          .map((m) => (
+            <div
+              className="client-item"
+              key={m.id}
+              style={{ cursor: "default" }}
+            >
+              <div className="avatar">
+                {(m.nome || m.email || "?")[0].toUpperCase()}
+              </div>
+              <div className="meta">
+                <div className="name">{m.nome || m.email}</div>
+                <div className="sub">
+                  {m.email}
+                  {m.ultimoAcesso
+                    ? " · último acesso " + fmtDate(m.ultimoAcesso.slice(0, 10))
+                    : " · sem acesso ainda"}
+                </div>
+              </div>
+              <span className={m.papel === "dono" ? "chip gold" : "chip"}>
+                {m.papel === "dono" ? "dono" : "RTV"}
+              </span>
+            </div>
+          ))}
+      </div>
+
+      {isOwner && (
+        <>
+          <div className="section-head">
+            <h2>Adicionar RTV</h2>
+          </div>
+          <label htmlFor="mNome">Nome</label>
+          <input
+            className="input"
+            id="mNome"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+          />
+          <label htmlFor="mEmail">Email</label>
+          <input
+            className="input"
+            id="mEmail"
+            type="email"
+            inputMode="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          {tempPass && (
+            <div className="auth-msg" style={{ whiteSpace: "pre-wrap" }}>
+              RTV criado. Compartilhe o acesso:{"\n"}Email: {tempPass.email}
+              {"\n"}Senha temporária: {tempPass.senha}
+            </div>
+          )}
+          <div className="btn-row">
+            <button
+              className="btn btn-primary btn-block"
+              style={{ flex: 1 }}
+              onClick={convidar}
+              disabled={busy}
+            >
+              {busy ? "Adicionando..." : "Adicionar RTV"}
+            </button>
+          </div>
+        </>
+      )}
     </>
   );
 }

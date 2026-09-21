@@ -50,6 +50,14 @@ Um super_admin (linha em `platform_admins`) tem leitura global para o painel.
 Ao criar a conta, o trigger `handle_new_user()` cria a **organização** e o perfil
 do usuário como `dono`, automaticamente.
 
+## Equipe (dono + RTVs)
+
+O dono vê os membros da organização e adiciona RTVs (tocando na pílula
+"online" → **Equipe**). Adicionar RTV cria o usuário via service role e o
+vincula à mesma organização, retornando uma senha temporária para compartilhar.
+Requer `SUPABASE_SERVICE_ROLE_KEY` configurada no servidor (nunca exposta ao
+browser).
+
 ## Painel super_admin
 
 Acesse `/admin`. Para promover um usuário:

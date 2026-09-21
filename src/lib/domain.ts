@@ -165,4 +165,12 @@ export type Settings = {
   metaVendasMes: number;
 };
 
+export type Member = {
+  id: string;
+  nome: string;
+  email: string;
+  papel: "dono" | "rtv";
+  ultimoAcesso: string | null;
+};
+
 export type TabKey = "dashboard" | "clientes" | "visita" | "funil" | "agenda";

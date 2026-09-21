@@ -5,6 +5,7 @@ import {
   STAGES,
   type Client,
   type Opportunity,
+  type Member,
   type Monitoramento,
   type Recomendacao,
   type Settings,
@@ -39,6 +40,7 @@ import {
   AccountSheet,
   ClientDetailSheet,
   ClientFormSheet,
+  EquipeSheet,
   GoalsSheet,
   OppFormSheet,
   ReportSheet,
@@ -58,6 +60,7 @@ type Sheet =
   | { kind: "goals" }
   | { kind: "report"; visit: Visit }
   | { kind: "account" }
+  | { kind: "equipe" }
   | null;
 
 export type AppRootProps = {
@@ -67,6 +70,7 @@ export type AppRootProps = {
   userNome: string;
   email: string;
   papel: string;
+  members: Member[];
   initial: {
     clients: Client[];
     visits: Visit[];
@@ -91,6 +95,7 @@ export function AppRoot({
   userNome,
   email,
   papel,
+  members: initialMembers,
   initial,
 }: AppRootProps) {
   const [tab, setTab] = useState<TabKey>("dashboard");
@@ -100,6 +105,7 @@ export function AppRoot({
     initial.opportunities
   );
   const [talhoes, setTalhoes] = useState<Talhao[]>(initial.talhoes);
+  const [members, setMembers] = useState<Member[]>(initialMembers);
   const [settings, setSettings] = useState<Settings>(initial.settings);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [search, setSearch] = useState("");
@@ -481,6 +487,19 @@ export function AppRoot({
               toast={toast}
             />
           )}
+          {sheet?.kind === "equipe" && (
+            <EquipeSheet
+              members={members}
+              isOwner={papel === "dono"}
+              onClose={() => setSheet(null)}
+              onInvited={(m) =>
+                setMembers((prev) =>
+                  prev.some((x) => x.id === m.id) ? prev : [...prev, m]
+                )
+              }
+              toast={toast}
+            />
+          )}
           {sheet?.kind === "goals" && (
             <GoalsSheet
               settings={settings}
@@ -507,6 +526,7 @@ export function AppRoot({
               papel={papel}
               onClose={() => setSheet(null)}
               onLogout={doLogout}
+              onEquipe={() => setSheet({ kind: "equipe" })}
             />
           )}
         </div>
