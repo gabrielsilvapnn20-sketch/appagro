@@ -19,6 +19,7 @@ export function recomendacaoFromRow(
     dose: r.dose == null ? "" : String(r.dose),
     unidade: (r.unidade as string) ?? "",
     alvo: (r.alvo as string) ?? "",
+    preco: r.preco == null ? "" : String(r.preco),
     obs: (r.observacoes as string) ?? "",
   };
 }

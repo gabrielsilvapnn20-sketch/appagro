@@ -247,6 +247,7 @@ export async function saveVisit(
           dose: r.dose === "" ? null : Number(r.dose),
           unidade: r.unidade || null,
           alvo: r.alvo || null,
+          preco: r.preco === "" ? null : Number(r.preco),
           observacoes: r.obs || null,
           data: data.date,
         }))
@@ -267,6 +268,9 @@ export async function saveSettings(
     organization_id: organizationId,
     meta_visitas_mes: Number(settings.metaVisitasMes) || 0,
     meta_vendas_mes: Number(settings.metaVendasMes) || 0,
+    agronomo_nome: settings.agronomoNome || null,
+    agronomo_crea: settings.agronomoCrea || null,
+    agronomo_uf: settings.agronomoUf || null,
     atualizado_em: new Date().toISOString(),
   });
   if (error) throw error;

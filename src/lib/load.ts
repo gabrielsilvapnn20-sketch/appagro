@@ -95,8 +95,17 @@ export async function loadAppData(): Promise<{
     ? {
         metaVisitasMes: Number(settingsRes.data.meta_visitas_mes) || 20,
         metaVendasMes: Number(settingsRes.data.meta_vendas_mes) || 50000,
+        agronomoNome: (settingsRes.data.agronomo_nome as string) || "",
+        agronomoCrea: (settingsRes.data.agronomo_crea as string) || "",
+        agronomoUf: (settingsRes.data.agronomo_uf as string) || "",
       }
-    : { metaVisitasMes: 20, metaVendasMes: 50000 };
+    : {
+        metaVisitasMes: 20,
+        metaVendasMes: 50000,
+        agronomoNome: "",
+        agronomoCrea: "",
+        agronomoUf: "",
+      };
 
   return { clients, visits, opportunities, talhoes, settings };
 }

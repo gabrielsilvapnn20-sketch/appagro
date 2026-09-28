@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  ALVOS_GERAIS,
+  ALVOS_POR_CULTURA,
   FASES_LAVOURA,
   TIPOS_MONITORAMENTO,
   UNIDADES_DOSE,
@@ -100,6 +102,7 @@ export function VisitaScreen({
   const [rDose, setRDose] = useState("");
   const [rUnidade, setRUnidade] = useState(UNIDADES_DOSE[0]);
   const [rAlvo, setRAlvo] = useState("");
+  const [rPreco, setRPreco] = useState("");
 
   function addRec() {
     if (!rProduto.trim()) {
@@ -114,12 +117,14 @@ export function VisitaScreen({
         dose: rDose,
         unidade: rUnidade,
         alvo: rAlvo.trim(),
+        preco: rPreco,
         obs: "",
       },
     ]);
     setRProduto("");
     setRDose("");
     setRAlvo("");
+    setRPreco("");
   }
 
   function removeRec(id: string) {
@@ -183,6 +188,19 @@ export function VisitaScreen({
   const talhaoOptions = talhoes
     .filter((t) => t.clientId === clientId)
     .sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
+
+  // templates de scouting: sugestões de alvo pela cultura do cliente
+  const clienteSel = clients.find((c) => c.id === clientId);
+  const alvoSugeridos = (() => {
+    const culturas = clienteSel?.culturas || [];
+    const set = new Set<string>();
+    culturas.forEach((cu) => {
+      const key = cu.trim().toLowerCase();
+      (ALVOS_POR_CULTURA[key] || []).forEach((a) => set.add(a));
+    });
+    if (!set.size) ALVOS_GERAIS.forEach((a) => set.add(a));
+    return Array.from(set);
+  })();
 
   const recent = visits
     .slice()
@@ -397,7 +415,13 @@ export function VisitaScreen({
             placeholder="Alvo (ex: percevejo, ferrugem, buva)"
             value={mAlvo}
             onChange={(e) => setMAlvo(e.target.value)}
+            list="alvoSugList"
           />
+          <datalist id="alvoSugList">
+            {alvoSugeridos.map((a) => (
+              <option value={a} key={a} />
+            ))}
+          </datalist>
           <div className="row2">
             <input
               className="input"
@@ -453,6 +477,7 @@ export function VisitaScreen({
                     ? " — " + r.dose + (r.unidade ? " " + r.unidade : "")
                     : ""}
                   {r.alvo ? " · alvo: " + r.alvo : ""}
+                  {r.preco ? " · R$ " + r.preco : ""}
                 </div>
                 <button
                   type="button"
@@ -501,12 +526,21 @@ export function VisitaScreen({
               ))}
             </select>
           </div>
-          <input
-            className="input"
-            placeholder="Alvo (opcional)"
-            value={rAlvo}
-            onChange={(e) => setRAlvo(e.target.value)}
-          />
+          <div className="row2">
+            <input
+              className="input"
+              placeholder="Alvo (opcional)"
+              value={rAlvo}
+              onChange={(e) => setRAlvo(e.target.value)}
+            />
+            <input
+              className="input"
+              type="number"
+              placeholder="Preço (R$)"
+              value={rPreco}
+              onChange={(e) => setRPreco(e.target.value)}
+            />
+          </div>
           <button type="button" className="btn btn-block" onClick={addRec}>
             + Adicionar produto
           </button>

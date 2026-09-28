@@ -255,6 +255,23 @@ export function AppRoot({
     }
   }
 
+  async function saveAgronomo(nome: string, crea: string, uf: string) {
+    const s: Settings = {
+      ...settings,
+      agronomoNome: nome,
+      agronomoCrea: crea,
+      agronomoUf: uf,
+    };
+    setSettings(s);
+    setSheet(null);
+    toast("Agrônomo responsável salvo");
+    try {
+      await saveSettings(orgId, s);
+    } catch {
+      /* mantém localmente */
+    }
+  }
+
   // ------- goals
   async function submitGoals(s: Settings) {
     setSettings(s);
@@ -560,6 +577,11 @@ export function AppRoot({
               talhaoNome={
                 talhoes.find((t) => t.id === sheet.visit.talhaoId)?.nome
               }
+              talhaoAreaHa={
+                talhoes.find((t) => t.id === sheet.visit.talhaoId)?.areaHa
+              }
+              settings={settings}
+              orgNome={orgNome}
               onClose={() => setSheet(null)}
               toast={toast}
             />
@@ -574,6 +596,10 @@ export function AppRoot({
               onLogout={doLogout}
               onEquipe={() => setSheet({ kind: "equipe" })}
               onNotifications={enableNotifications}
+              agronomoNome={settings.agronomoNome}
+              agronomoCrea={settings.agronomoCrea}
+              agronomoUf={settings.agronomoUf}
+              onSaveAgronomo={saveAgronomo}
             />
           )}
         </div>

@@ -790,6 +790,7 @@ export function GoalsSheet({
           style={{ flex: 1 }}
           onClick={() =>
             onSubmit({
+              ...settings,
               metaVisitasMes: Number(visitas) || 0,
               metaVendasMes: Number(vendas) || 0,
             })
@@ -807,16 +808,31 @@ export function ReportSheet({
   visit,
   client,
   talhaoNome,
+  talhaoAreaHa,
+  settings,
+  orgNome,
   onClose,
   toast,
 }: {
   visit: Visit;
   client?: Client;
   talhaoNome?: string;
+  talhaoAreaHa?: string;
+  settings: Settings;
+  orgNome: string;
   onClose: () => void;
   toast: (m: string) => void;
 }) {
   const report = buildReport(visit, client, talhaoNome);
+
+  const custoTotal = visit.receituario.reduce(
+    (s, r) => s + (Number(r.preco) || 0),
+    0
+  );
+  const area = Number(talhaoAreaHa || client?.areaHa || 0);
+  const custoHa = area > 0 && custoTotal > 0 ? custoTotal / area : 0;
+  const temReceituario = visit.receituario.length > 0;
+  const temPreco = custoTotal > 0;
 
   async function baixarPdf() {
     try {
@@ -824,6 +840,28 @@ export function ReportSheet({
       await downloadVisitPdf(visit, client, talhaoNome);
     } catch {
       toast("Não foi possível gerar o PDF");
+    }
+  }
+
+  async function baixarReceita() {
+    if (!settings.agronomoNome) {
+      toast("Cadastre o agrônomo responsável em Sua conta");
+      return;
+    }
+    try {
+      const { downloadReceitaPdf } = await import("@/lib/pdf");
+      await downloadReceitaPdf(visit, client, talhaoNome, orgNome, settings);
+    } catch {
+      toast("Não foi possível gerar a receita");
+    }
+  }
+
+  async function baixarOrcamento() {
+    try {
+      const { downloadOrcamentoPdf } = await import("@/lib/pdf");
+      await downloadOrcamentoPdf(visit, client, orgNome, custoTotal, custoHa);
+    } catch {
+      toast("Não foi possível gerar o orçamento");
     }
   }
 
@@ -842,14 +880,49 @@ export function ReportSheet({
     <>
       <SheetHead title="Relatório da visita" onClose={onClose} />
       <div className="report-box">{report}</div>
+
+      {temPreco && (
+        <div
+          className="mini-item"
+          style={{ marginTop: 10, justifyContent: "space-between" }}
+        >
+          <span>
+            Custo estimado: <b>{fmtMoney(custoTotal)}</b>
+          </span>
+          {custoHa > 0 && (
+            <span style={{ color: "var(--accent)", fontWeight: 700 }}>
+              {fmtMoney(custoHa)}/ha
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="btn-row">
         <button className="btn" style={{ flex: 1 }} onClick={copy}>
           Copiar
         </button>
         <button className="btn" style={{ flex: 1 }} onClick={baixarPdf}>
-          Baixar PDF
+          Relatório PDF
         </button>
       </div>
+      {temReceituario && (
+        <button
+          className="btn btn-block"
+          style={{ marginTop: 10 }}
+          onClick={baixarReceita}
+        >
+          🧾 Receita agronômica (PDF)
+        </button>
+      )}
+      {temPreco && (
+        <button
+          className="btn btn-block"
+          style={{ marginTop: 10 }}
+          onClick={baixarOrcamento}
+        >
+          💰 Orçamento (PDF)
+        </button>
+      )}
       <a
         className="btn btn-primary btn-block"
         style={{
@@ -879,6 +952,10 @@ export function AccountSheet({
   onLogout,
   onEquipe,
   onNotifications,
+  agronomoNome,
+  agronomoCrea,
+  agronomoUf,
+  onSaveAgronomo,
 }: {
   orgNome: string;
   userNome: string;
@@ -888,7 +965,14 @@ export function AccountSheet({
   onLogout: () => void;
   onEquipe: () => void;
   onNotifications: () => void;
+  agronomoNome: string;
+  agronomoCrea: string;
+  agronomoUf: string;
+  onSaveAgronomo: (nome: string, crea: string, uf: string) => void;
 }) {
+  const [aNome, setANome] = useState(agronomoNome);
+  const [aCrea, setACrea] = useState(agronomoCrea);
+  const [aUf, setAUf] = useState(agronomoUf);
   return (
     <>
       <SheetHead title="Sua conta" onClose={onClose} />
@@ -919,6 +1003,58 @@ export function AccountSheet({
         >
           Equipe
         </button>
+      )}
+
+      {papel === "dono" && (
+        <>
+          <div className="section-head">
+            <h2>Agrônomo responsável</h2>
+          </div>
+          <p className="subtitle" style={{ margin: "0 0 4px" }}>
+            Usado na receita agronômica (ART/CREA).
+          </p>
+          <label htmlFor="agNome">Nome do agrônomo</label>
+          <input
+            className="input"
+            id="agNome"
+            value={aNome}
+            onChange={(e) => setANome(e.target.value)}
+          />
+          <div className="row2">
+            <div>
+              <label htmlFor="agCrea">CREA / ART</label>
+              <input
+                className="input"
+                id="agCrea"
+                value={aCrea}
+                onChange={(e) => setACrea(e.target.value)}
+                placeholder="Ex: CREA-MT 123456"
+              />
+            </div>
+            <div>
+              <label htmlFor="agUf">UF</label>
+              <input
+                className="input"
+                id="agUf"
+                value={aUf}
+                onChange={(e) => setAUf(e.target.value)}
+                placeholder="MT"
+                maxLength={2}
+              />
+            </div>
+          </div>
+          <div className="btn-row">
+            <button
+              className="btn btn-primary btn-block"
+              style={{ flex: 1 }}
+              onClick={() =>
+                onSaveAgronomo(aNome.trim(), aCrea.trim(), aUf.trim())
+              }
+            >
+              Salvar agrônomo
+            </button>
+          </div>
+        </>
       )}
       <div className="btn-row">
         <button

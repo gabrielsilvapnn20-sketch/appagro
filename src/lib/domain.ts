@@ -101,8 +101,60 @@ export type Recomendacao = {
   dose: string;
   unidade: string;
   alvo: string;
+  preco: string;
   obs: string;
 };
+
+// Templates de scouting: alvos comuns por cultura (pré-preenche o monitoramento)
+export const ALVOS_POR_CULTURA: Record<string, string[]> = {
+  soja: [
+    "Percevejo marrom",
+    "Percevejo verde",
+    "Lagarta da soja",
+    "Helicoverpa",
+    "Mosca-branca",
+    "Ferrugem asiática",
+    "Mofo branco",
+    "Mancha-alvo",
+    "Antracnose",
+    "Buva",
+    "Capim-amargoso",
+    "Caruru",
+  ],
+  milho: [
+    "Lagarta-do-cartucho",
+    "Cigarrinha-do-milho",
+    "Percevejo barriga-verde",
+    "Helicoverpa",
+    "Cercospora",
+    "Ferrugem polysora",
+    "Mancha-branca",
+    "Enfezamento",
+    "Capim-amargoso",
+    "Buva",
+  ],
+  "algodão": [
+    "Bicudo",
+    "Pulgão",
+    "Mosca-branca",
+    "Ácaro-rajado",
+    "Lagarta-rosada",
+    "Ramulária",
+    "Mancha-de-alternária",
+    "Caruru",
+  ],
+};
+
+export const ALVOS_GERAIS = [
+  "Percevejo",
+  "Lagarta",
+  "Ferrugem",
+  "Mofo branco",
+  "Mancha-alvo",
+  "Buva",
+  "Capim-amargoso",
+  "Caruru",
+];
 
 export type Client = {
   id: string;
@@ -163,6 +215,9 @@ export type Opportunity = {
 export type Settings = {
   metaVisitasMes: number;
   metaVendasMes: number;
+  agronomoNome: string;
+  agronomoCrea: string;
+  agronomoUf: string;
 };
 
 export type Member = {
