@@ -29,6 +29,13 @@ import {
 } from "@/lib/data";
 import { logout } from "@/app/auth/actions";
 import { alertsList } from "@/lib/derive";
+import {
+  enqueueVisit,
+  isOnline,
+  loadQueue,
+  pendingCount,
+  removeFromQueue,
+} from "@/lib/offline";
 import { SulcoMark } from "@/components/SulcoMark";
 import {
   IconCalendar,
@@ -122,6 +129,10 @@ export function AppRoot({
   const [visitPreset, setVisitPreset] = useState("");
   const [toastMsg, setToastMsg] = useState("");
   const [toastShow, setToastShow] = useState(false);
+  const [online, setOnline] = useState(true);
+  const [pending, setPending] = useState(0);
+  const [pullY, setPullY] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
 
   const contentRef = useRef<HTMLDivElement>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -334,6 +345,33 @@ export function AppRoot({
     monitoramentos: Monitoramento[],
     receituario: Recomendacao[]
   ): Promise<boolean> {
+    // Sem conexão: guarda no aparelho e sincroniza quando a internet voltar.
+    if (!isOnline()) {
+      const item = enqueueVisit(data, monitoramentos, receituario);
+      const localVisit: Visit = {
+        id: item.id,
+        clientId: data.clientId,
+        talhaoId: data.talhaoId || null,
+        userId,
+        date: data.date,
+        nextReturnDate: data.nextReturnDate,
+        fase: data.fase,
+        notas: data.notas,
+        recomendacoes: data.recomendacoes,
+        photos: [],
+        monitoramentos,
+        receituario,
+        createdAt: new Date().toISOString(),
+      };
+      setVisits((prev) => [localVisit, ...prev]);
+      setPending(pendingCount());
+      toast(
+        files.length
+          ? "Sem sinal — visita salva no aparelho (adicione fotos ao sincronizar)"
+          : "Sem sinal — visita salva no aparelho, sincroniza ao voltar"
+      );
+      return true;
+    }
     try {
       const visit = await saveVisit(
         orgId,
@@ -351,6 +389,75 @@ export function AppRoot({
       toast("Não foi possível registrar a visita");
       return false;
     }
+  }
+
+  // Sincroniza a fila offline de visitas
+  async function flushQueue() {
+    if (!isOnline()) return;
+    const q = loadQueue();
+    if (!q.length) return;
+    let done = 0;
+    for (const item of q) {
+      try {
+        const visit = await saveVisit(
+          orgId,
+          userId,
+          item.data,
+          [],
+          item.monitoramentos,
+          item.receituario
+        );
+        setVisits((prev) => [visit, ...prev.filter((v) => v.id !== item.id)]);
+        removeFromQueue(item.id);
+        done++;
+      } catch {
+        /* mantém na fila para a próxima tentativa */
+      }
+    }
+    setPending(pendingCount());
+    if (done) toast(done + " visita(s) sincronizada(s)");
+  }
+
+  // Estado de conexão + sincronização automática
+  useEffect(() => {
+    setOnline(isOnline());
+    setPending(pendingCount());
+    if (isOnline()) flushQueue();
+    const goOnline = () => {
+      setOnline(true);
+      flushQueue();
+    };
+    const goOffline = () => setOnline(false);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ------- pull-to-refresh (gesto iOS)
+  const pullStart = useRef<number | null>(null);
+  function onTouchStart(e: React.TouchEvent) {
+    const el = contentRef.current;
+    if (el && el.scrollTop <= 0) pullStart.current = e.touches[0].clientY;
+    else pullStart.current = null;
+  }
+  function onTouchMove(e: React.TouchEvent) {
+    if (pullStart.current == null || refreshing) return;
+    const dy = e.touches[0].clientY - pullStart.current;
+    if (dy > 0) setPullY(Math.min(90, dy * 0.5));
+  }
+  function onTouchEnd() {
+    if (pullStart.current == null) return;
+    if (pullY > 60) {
+      setRefreshing(true);
+      setTimeout(() => window.location.reload(), 300);
+    } else {
+      setPullY(0);
+    }
+    pullStart.current = null;
   }
 
   function startVisitForClient(clientId: string) {
@@ -391,9 +498,20 @@ export function AppRoot({
     try {
       const perm = await Notification.requestPermission();
       if (perm === "granted") {
-        toast("Notificações ativadas");
         setSheet(null);
         setTimeout(notifyReturns, 400);
+        // Inscreve para push (lembretes com o app fechado), se configurado
+        try {
+          const { subscribeToPush } = await import("@/lib/push");
+          const r = await subscribeToPush();
+          toast(
+            r === "ok"
+              ? "Notificações ativadas (inclusive com o app fechado)"
+              : "Notificações ativadas neste aparelho"
+          );
+        } catch {
+          toast("Notificações ativadas neste aparelho");
+        }
       } else {
         toast("Permissão de notificação negada");
       }
@@ -433,7 +551,34 @@ export function AppRoot({
         </div>
       </div>
 
-      <div className="content" ref={contentRef}>
+      {(!online || pending > 0) && (
+        <div className={"conn-bar" + (online ? " sync" : "")}>
+          {online
+            ? pending + " visita(s) aguardando sincronização…"
+            : "Sem conexão — você pode registrar visitas e sincronizamos depois"}
+        </div>
+      )}
+
+      <div
+        className="content"
+        ref={contentRef}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        {(pullY > 0 || refreshing) && (
+          <div
+            className="ptr"
+            style={{ height: refreshing ? 40 : pullY, opacity: refreshing ? 1 : pullY / 60 }}
+          >
+            <span className={"ptr-spin" + (refreshing ? " on" : "")}>↻</span>
+            {refreshing
+              ? "Atualizando…"
+              : pullY > 60
+              ? "Solte para atualizar"
+              : "Puxe para atualizar"}
+          </div>
+        )}
         {tab === "dashboard" && (
           <Dashboard
             clients={clients}
@@ -451,6 +596,7 @@ export function AppRoot({
             search={search}
             onSearch={setSearch}
             onOpenClient={(id) => setSheet({ kind: "clientDetail", clientId: id })}
+            onQuickVisit={startVisitForClient}
           />
         )}
         {tab === "visita" && (

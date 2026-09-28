@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   CALENDARIO_SAFRA,
   STAGES,
@@ -8,7 +8,13 @@ import {
   type Opportunity,
   type Visit,
 } from "@/lib/domain";
-import { fmtDate, fmtMoney, initials } from "@/lib/format";
+import {
+  buildClientCard,
+  fmtDate,
+  fmtMoney,
+  initials,
+  waLink,
+} from "@/lib/format";
 import {
   alertsList,
   pedidosThisMonthValue,
@@ -38,6 +44,72 @@ const MESES_LONGOS = [
   "novembro",
   "dezembro",
 ];
+
+// ---------------------------------------------------- Linha com swipe (iOS)
+type SwipeAction = { label: string; icon: string; cls: string; onClick: () => void };
+
+function SwipeRow({
+  actions,
+  children,
+}: {
+  actions: SwipeAction[];
+  children: React.ReactNode;
+}) {
+  const [dx, setDx] = useState(0);
+  const start = useRef<{ x: number; y: number } | null>(null);
+  const axis = useRef<"" | "x" | "y">("");
+  const width = actions.length * 80;
+
+  function ts(e: React.TouchEvent) {
+    start.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    axis.current = "";
+  }
+  function tm(e: React.TouchEvent) {
+    if (!start.current) return;
+    const ddx = e.touches[0].clientX - start.current.x;
+    const ddy = e.touches[0].clientY - start.current.y;
+    if (!axis.current) {
+      if (Math.abs(ddx) < 6 && Math.abs(ddy) < 6) return;
+      axis.current = Math.abs(ddx) > Math.abs(ddy) ? "x" : "y";
+    }
+    if (axis.current !== "x") return;
+    const base = dx <= -width ? -width : 0;
+    setDx(Math.max(-width, Math.min(0, base + ddx)));
+  }
+  function te() {
+    if (axis.current === "x") setDx(dx < -width / 2 ? -width : 0);
+    start.current = null;
+  }
+
+  return (
+    <div className="swipe-wrap">
+      <div className="swipe-actions" style={{ width }}>
+        {actions.map((a, i) => (
+          <button
+            key={i}
+            className={"swipe-act " + a.cls}
+            onClick={() => {
+              setDx(0);
+              a.onClick();
+            }}
+          >
+            <span style={{ fontSize: 16 }}>{a.icon}</span>
+            {a.label}
+          </button>
+        ))}
+      </div>
+      <div
+        className="swipe-fg"
+        style={{ transform: `translateX(${dx}px)` }}
+        onTouchStart={ts}
+        onTouchMove={tm}
+        onTouchEnd={te}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 // -------------------------------------------------------------- Dashboard
 export function Dashboard({
@@ -162,12 +234,14 @@ export function Clientes({
   search,
   onSearch,
   onOpenClient,
+  onQuickVisit,
 }: {
   clients: Client[];
   visits: Visit[];
   search: string;
   onSearch: (v: string) => void;
   onOpenClient: (id: string) => void;
+  onQuickVisit: (id: string) => void;
 }) {
   const [regiao, setRegiao] = useState("");
   const [cultura, setCultura] = useState("");
@@ -271,21 +345,45 @@ export function Clientes({
           {list.map((c) => {
             const sub =
               (c.fazenda ? c.fazenda + " · " : "") + (c.regiao || "sem região");
+            const lastV = visits
+              .filter((v) => v.clientId === c.id)
+              .sort((a, b) => (b.date || "").localeCompare(a.date || ""))[0];
             return (
-              <div
-                className="client-item"
+              <SwipeRow
                 key={c.id}
-                onClick={() => onOpenClient(c.id)}
+                actions={[
+                  {
+                    label: "Zap",
+                    icon: "💬",
+                    cls: "zap",
+                    onClick: () =>
+                      window.open(
+                        waLink(buildClientCard(c, lastV), c.telefone),
+                        "_blank"
+                      ),
+                  },
+                  {
+                    label: "Visita",
+                    icon: "📋",
+                    cls: "visita",
+                    onClick: () => onQuickVisit(c.id),
+                  },
+                ]}
               >
-                <div className="avatar">
-                  {initials(c.nome).toUpperCase()}
+                <div
+                  className="client-item"
+                  onClick={() => onOpenClient(c.id)}
+                >
+                  <div className="avatar">
+                    {initials(c.nome).toUpperCase()}
+                  </div>
+                  <div className="meta">
+                    <div className="name">{c.nome || "Sem nome"}</div>
+                    <div className="sub">{sub}</div>
+                  </div>
+                  <IconChevron className="chev" />
                 </div>
-                <div className="meta">
-                  <div className="name">{c.nome || "Sem nome"}</div>
-                  <div className="sub">{sub}</div>
-                </div>
-                <IconChevron className="chev" />
-              </div>
+              </SwipeRow>
             );
           })}
         </div>

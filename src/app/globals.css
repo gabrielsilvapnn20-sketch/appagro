@@ -1085,6 +1085,80 @@ select:focus-visible {
   font-weight: 600;
 }
 
+/* ------------------------------------------------ Conexão / offline / PTR */
+.conn-bar {
+  padding: 7px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: center;
+  background: #8a6d00;
+  color: #fff;
+}
+.conn-bar.sync {
+  background: var(--primary);
+}
+.ptr {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  overflow: hidden;
+  transition: opacity 0.15s;
+}
+.ptr-spin {
+  display: inline-block;
+  font-size: 15px;
+}
+.ptr-spin.on {
+  animation: ptr-rot 0.8s linear infinite;
+}
+@keyframes ptr-rot {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ------------------------------------------------------- Swipe nas listas */
+.swipe-wrap {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+}
+.swipe-actions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+}
+.swipe-act {
+  border: none;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  width: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+}
+.swipe-act.visita {
+  background: var(--primary);
+}
+.swipe-act.zap {
+  background: #25d366;
+}
+.swipe-fg {
+  position: relative;
+  background: var(--card);
+  transition: transform 0.18s ease;
+  touch-action: pan-y;
+}
+
 /* Alertas clicáveis (Agenda) */
 .alert-item.clickable {
   cursor: pointer;
