@@ -452,3 +452,114 @@ export async function downloadOrcamentoPdf(
 
   doc.save("orcamento-" + slug(client?.nome || "visita") + "-" + visit.date + ".pdf");
 }
+
+/* ----------------------------------------------- Relatório mensal (resumo) */
+export type ResumoMensal = {
+  mesLabel: string;
+  visitasMes: number;
+  receitasMes: number;
+  fechadoMes: number;
+  visitasTotal: number;
+  porRtv: { nome: string; papel: string; n: number }[];
+  top: { nome: string; n: number; total: number }[];
+};
+
+export async function downloadResumoMensalPdf(
+  orgNome: string,
+  r: ResumoMensal
+) {
+  const { jsPDF } = await import("jspdf");
+  const doc = new jsPDF({ unit: "pt", format: "a4" });
+  const W = doc.internal.pageSize.getWidth();
+  const H = doc.internal.pageSize.getHeight();
+  const M = 48;
+  const CW = W - M * 2;
+  let y = 0;
+
+  doc.setFillColor(...PRIMARY);
+  doc.rect(0, 0, W, 96, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.text(orgNome || "AgroGiro", M, 44);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(12);
+  doc.text("Relatório do mês — " + r.mesLabel, M, 66);
+  y = 128;
+
+  function ensure(h: number) {
+    if (y + h > H - 48) {
+      doc.addPage();
+      y = M + 8;
+    }
+  }
+  function heading(t: string) {
+    ensure(30);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(...PRIMARY);
+    doc.text(t, M, y);
+    y += 6;
+    doc.setDrawColor(...ACCENT);
+    doc.setLineWidth(1.2);
+    doc.line(M, y, M + 40, y);
+    y += 16;
+  }
+  function row(k: string, v: string) {
+    ensure(18);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(...INK);
+    doc.text(k, M, y);
+    doc.setFont("helvetica", "bold");
+    doc.text(v, W - M, y, { align: "right" });
+    y += 18;
+  }
+
+  heading("Resumo do mês");
+  row("Visitas realizadas", String(r.visitasMes));
+  row("Receitas emitidas", String(r.receitasMes));
+  row("Fechado em pedidos", fmtMoney(r.fechadoMes));
+  row("Visitas acumuladas (total)", String(r.visitasTotal));
+  y += 8;
+
+  heading("Visitas por RTV");
+  if (r.porRtv.length) {
+    r.porRtv.forEach((m) =>
+      row(m.nome + (m.papel === "dono" ? " (dono)" : ""), String(m.n))
+    );
+  } else {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(...INK_SOFT);
+    doc.text("Sem equipe cadastrada.", M, y);
+    y += 16;
+  }
+  y += 8;
+
+  heading("Produtos mais recomendados");
+  if (r.top.length) {
+    r.top.forEach((p) =>
+      row(p.nome, p.n + "×" + (p.total > 0 ? "  " + fmtMoney(p.total) : ""))
+    );
+  } else {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(...INK_SOFT);
+    doc.text("Ainda não há produtos recomendados.", M, y);
+    y += 16;
+  }
+
+  doc.setFontSize(8);
+  doc.setTextColor(...INK_SOFT);
+  doc.text(
+    "Gerado pelo AgroGiro em " +
+      fmtDate(new Date().toISOString().slice(0, 10)) +
+      ".",
+    M,
+    H - 24,
+    { maxWidth: CW }
+  );
+
+  doc.save("relatorio-mensal-" + slug(r.mesLabel) + ".pdf");
+}

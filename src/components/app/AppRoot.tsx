@@ -588,10 +588,13 @@ export function AppRoot({
           )}
           {sheet?.kind === "bi" && (
             <BiSheet
+              clients={clients}
               visits={visits}
               opportunities={opportunities}
               members={members}
+              orgNome={orgNome}
               onClose={() => setSheet(null)}
+              toast={toast}
             />
           )}
           {sheet?.kind === "catalogo" && (

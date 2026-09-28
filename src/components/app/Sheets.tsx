@@ -1502,16 +1502,37 @@ export function EquipeSheet({
 }
 
 // ------------------------------------------------------------ Relatórios / BI
+const MESES_PT = [
+  "janeiro",
+  "fevereiro",
+  "março",
+  "abril",
+  "maio",
+  "junho",
+  "julho",
+  "agosto",
+  "setembro",
+  "outubro",
+  "novembro",
+  "dezembro",
+];
+
 export function BiSheet({
+  clients,
   visits,
   opportunities,
   members,
+  orgNome,
   onClose,
+  toast,
 }: {
+  clients: Client[];
   visits: Visit[];
   opportunities: Opportunity[];
   members: Member[];
+  orgNome: string;
   onClose: () => void;
+  toast: (m: string) => void;
 }) {
   const mk = currentMonthKey();
   const visitasMes = visits.filter((v) => (v.date || "").slice(0, 7) === mk).length;
@@ -1611,6 +1632,65 @@ export function BiSheet({
           Ainda não há produtos recomendados.
         </p>
       )}
+
+      <div className="section-head">
+        <h2>Exportar</h2>
+      </div>
+      <div className="card" style={{ padding: 10 }}>
+        <button
+          className="btn btn-primary"
+          style={{ width: "100%" }}
+          onClick={async () => {
+            try {
+              const { downloadResumoMensalPdf } = await import("@/lib/pdf");
+              const [y, m] = mk.split("-").map(Number);
+              await downloadResumoMensalPdf(orgNome, {
+                mesLabel: `${MESES_PT[(m || 1) - 1]} de ${y}`,
+                visitasMes,
+                receitasMes,
+                fechadoMes,
+                visitasTotal: visits.length,
+                porRtv,
+                top,
+              });
+            } catch {
+              toast("Não foi possível gerar o PDF");
+            }
+          }}
+        >
+          Relatório do mês (PDF)
+        </button>
+        <button
+          className="btn"
+          style={{ width: "100%", marginTop: 8 }}
+          onClick={async () => {
+            try {
+              const { downloadClientsCsv } = await import("@/lib/exportData");
+              downloadClientsCsv(clients, visits);
+              toast("Carteira exportada");
+            } catch {
+              toast("Não foi possível exportar");
+            }
+          }}
+        >
+          Carteira de clientes (CSV/Excel)
+        </button>
+        <button
+          className="btn"
+          style={{ width: "100%", marginTop: 8 }}
+          onClick={async () => {
+            try {
+              const { downloadOppsCsv } = await import("@/lib/exportData");
+              downloadOppsCsv(opportunities, clients);
+              toast("Pedidos exportados");
+            } catch {
+              toast("Não foi possível exportar");
+            }
+          }}
+        >
+          Pedidos / oportunidades (CSV/Excel)
+        </button>
+      </div>
     </>
   );
 }
