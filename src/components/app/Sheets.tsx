@@ -55,6 +55,125 @@ import {
   promptInstall,
 } from "@/lib/pwa";
 
+// Extrai "lat, long" de um texto: link do Google Maps (@-12.3,-56.7),
+// ?q=-12.3,-56.7, ou coordenadas coladas direto.
+export function parseLatLng(
+  text: string
+): { lat: number; lng: number } | null {
+  if (!text) return null;
+  const m = text.match(
+    /(-?\d{1,3}(?:\.\d+)?)\s*[,;\s]\s*(-?\d{1,3}(?:\.\d+)?)/
+  );
+  if (!m) return null;
+  const lat = parseFloat(m[1]);
+  const lng = parseFloat(m[2]);
+  if (Number.isNaN(lat) || Number.isNaN(lng)) return null;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+  return { lat, lng };
+}
+
+// Campo de localização reutilizável: GPS + colar link/coordenadas + manual.
+function LocationField({
+  lat,
+  lng,
+  what,
+  onChange,
+  toast,
+}: {
+  lat: number | null;
+  lng: number | null;
+  what: string;
+  onChange: (lat: number | null, lng: number | null) => void;
+  toast: (m: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [paste, setPaste] = useState("");
+
+  function gps() {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      toast("Este aparelho não suporta localização — cole o link do mapa");
+      return;
+    }
+    setBusy(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        onChange(pos.coords.latitude, pos.coords.longitude);
+        setBusy(false);
+        toast("Localização capturada agora");
+      },
+      () => {
+        setBusy(false);
+        toast(
+          "Não foi possível obter o GPS — permita o acesso ou cole o link do mapa"
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
+  function applyPaste() {
+    const r = parseLatLng(paste);
+    if (!r) {
+      toast("Não achei coordenadas. Cole um link do Google Maps ou 'lat, long'");
+      return;
+    }
+    onChange(r.lat, r.lng);
+    setPaste("");
+    toast("Localização definida");
+  }
+
+  return (
+    <>
+      <label>Localização {what}</label>
+      <div className="file-btn" onClick={busy ? undefined : gps}>
+        <IconPinCircle />
+        <span>
+          {busy
+            ? "Obtendo GPS…"
+            : lat != null
+            ? "Atualizar com meu GPS atual"
+            : "Usar meu GPS atual (estou na fazenda)"}
+        </span>
+      </div>
+      <div className="loc-manual">
+        <input
+          className="input"
+          placeholder="Ou cole o link do Google Maps / coordenadas"
+          value={paste}
+          onChange={(e) => setPaste(e.target.value)}
+        />
+        <button className="btn" type="button" onClick={applyPaste}>
+          Usar
+        </button>
+      </div>
+      {lat != null && lng != null && (
+        <div className="loc-current">
+          📍 {lat.toFixed(5)}, {lng.toFixed(5)} ·{" "}
+          <a
+            href={`https://www.google.com/maps?q=${lat},${lng}`}
+            target="_blank"
+            rel="noopener"
+          >
+            ver no mapa
+          </a>{" "}
+          ·{" "}
+          <button
+            type="button"
+            className="linkbtn"
+            onClick={() => onChange(null, null)}
+          >
+            remover
+          </button>
+        </div>
+      )}
+      <p className="subtitle" style={{ margin: "2px 0 8px" }}>
+        Não está na fazenda? No Google Maps, segure no ponto da propriedade,
+        copie as coordenadas (ou o link) e cole acima.
+      </p>
+    </>
+  );
+}
+
 // ------------------------------------------------------ Clima (Open-Meteo)
 export function WeatherCard({ lat, lng }: { lat: number; lng: number }) {
   const [data, setData] = useState<Weather | null>(null);
@@ -251,36 +370,6 @@ export function ClientFormSheet({
   const [obs, setObs] = useState(client?.obs ?? "");
   const [lat, setLat] = useState<number | null>(client?.lat ?? null);
   const [lng, setLng] = useState<number | null>(client?.lng ?? null);
-  const [locLabel, setLocLabel] = useState(
-    client?.lat
-      ? "Localização salva · toque para atualizar"
-      : "Usar minha localização atual"
-  );
-
-  function captureLoc() {
-    if (!navigator.geolocation) {
-      toast("Este dispositivo não suporta localização");
-      return;
-    }
-    setLocLabel("Obtendo localização...");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLat(pos.coords.latitude);
-        setLng(pos.coords.longitude);
-        setLocLabel("Localização capturada agora");
-        toast("Localização salva neste cadastro");
-      },
-      () => {
-        setLocLabel(
-          client?.lat
-            ? "Localização salva · toque para atualizar"
-            : "Usar minha localização atual"
-        );
-        toast("Não foi possível obter a localização");
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  }
 
   function save() {
     if (!nome.trim()) {
@@ -352,11 +441,16 @@ export function ClientFormSheet({
         onChange={(e) => setCulturasRaw(e.target.value)}
         placeholder="soja, milho, algodão"
       />
-      <label>Localização da fazenda</label>
-      <div className="file-btn" onClick={captureLoc}>
-        <IconPinCircle />
-        <span>{locLabel}</span>
-      </div>
+      <LocationField
+        lat={lat}
+        lng={lng}
+        what="da fazenda"
+        onChange={(la, ln) => {
+          setLat(la);
+          setLng(ln);
+        }}
+        toast={toast}
+      />
       <label htmlFor="fTel">Telefone</label>
       <input
         className="input"
@@ -416,36 +510,6 @@ export function TalhaoFormSheet({
   const [obs, setObs] = useState(talhao?.obs ?? "");
   const [lat, setLat] = useState<number | null>(talhao?.lat ?? null);
   const [lng, setLng] = useState<number | null>(talhao?.lng ?? null);
-  const [locLabel, setLocLabel] = useState(
-    talhao?.lat
-      ? "Localização salva · toque para atualizar"
-      : "Usar minha localização atual"
-  );
-
-  function captureLoc() {
-    if (!navigator.geolocation) {
-      toast("Este dispositivo não suporta localização");
-      return;
-    }
-    setLocLabel("Obtendo localização...");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLat(pos.coords.latitude);
-        setLng(pos.coords.longitude);
-        setLocLabel("Localização capturada agora");
-        toast("Localização salva neste talhão");
-      },
-      () => {
-        setLocLabel(
-          talhao?.lat
-            ? "Localização salva · toque para atualizar"
-            : "Usar minha localização atual"
-        );
-        toast("Não foi possível obter a localização");
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  }
 
   function save() {
     if (!nome.trim()) {
@@ -534,11 +598,16 @@ export function TalhaoFormSheet({
         value={dataPlantio}
         onChange={(e) => setDataPlantio(e.target.value)}
       />
-      <label>Localização do talhão</label>
-      <div className="file-btn" onClick={captureLoc}>
-        <IconPinCircle />
-        <span>{locLabel}</span>
-      </div>
+      <LocationField
+        lat={lat}
+        lng={lng}
+        what="do talhão"
+        onChange={(la, ln) => {
+          setLat(la);
+          setLng(ln);
+        }}
+        toast={toast}
+      />
       {lat != null && lng != null && sentinelInstanceId() && (
         <>
           <label style={{ marginTop: 4 }}>Satélite (Sentinel-2, últimos 90 dias)</label>

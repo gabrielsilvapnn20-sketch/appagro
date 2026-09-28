@@ -1160,6 +1160,98 @@ select:focus-visible {
   touch-action: pan-y;
 }
 
+/* ------------------------------------------------- Campo de localização */
+.loc-manual {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.loc-manual .input {
+  flex: 1;
+}
+.loc-manual .btn {
+  flex: 0 0 auto;
+  padding: 0 16px;
+}
+.loc-current {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--ink);
+}
+.loc-current a {
+  color: var(--primary);
+  font-weight: 600;
+}
+.linkbtn {
+  border: none;
+  background: none;
+  color: var(--danger);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* --------------------------------------------------- Clima do dia (Início) */
+.wx-today {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 0.5px solid var(--border);
+  border-radius: 16px;
+  background: var(--card);
+  padding: 12px 14px;
+  margin: 4px 0 14px;
+}
+.wx-t-main {
+  flex: 1;
+}
+.wx-t-top {
+  font-size: 15px;
+  font-weight: 700;
+}
+.wx-t-sub {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  margin-top: 1px;
+}
+.wx-t-adv {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 9px;
+  border-radius: 9px;
+  display: inline-block;
+}
+.wx-t-adv.boa {
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  color: var(--primary);
+}
+.wx-t-adv.atencao {
+  background: color-mix(in srgb, #e0a800 20%, transparent);
+  color: #9a7500;
+}
+.wx-t-adv.ruim {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+}
+:root[data-theme="dark"] .wx-t-adv.atencao,
+:root:not([data-theme="light"]) .wx-t-adv.atencao {
+  color: #f5c542;
+}
+.wx-cta {
+  width: 100%;
+  border: 1.5px dashed var(--border);
+  background: var(--card);
+  color: var(--primary);
+  border-radius: 14px;
+  padding: 13px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 4px 0 14px;
+}
+
 /* --------------------------------------------------- Header em conteúdo */
 .apphead {
   display: flex;

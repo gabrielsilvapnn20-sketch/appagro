@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   CALENDARIO_SAFRA,
   STAGES,
@@ -21,6 +21,12 @@ import {
   visitsForClient,
   visitsThisMonth,
 } from "@/lib/derive";
+import {
+  fetchWeather,
+  sprayAdvice,
+  weatherLabel,
+  type Weather,
+} from "@/lib/weather";
 import {
   IconCheckCircle,
   IconChevron,
@@ -111,6 +117,94 @@ function SwipeRow({
   );
 }
 
+// ------------------------------------------------------ Clima do dia (home)
+function WeatherToday({ clients }: { clients: Client[] }) {
+  const [loc, setLoc] = useState<{ lat: number; lng: number } | null>(null);
+  const [wx, setWx] = useState<Weather | null>(null);
+  const [state, setState] = useState<"idle" | "loading" | "ok" | "erro">("idle");
+
+  useEffect(() => {
+    let l: { lat: number; lng: number } | null = null;
+    try {
+      const raw = localStorage.getItem("agrogiro_home_loc");
+      if (raw) l = JSON.parse(raw);
+    } catch {
+      /* ignore */
+    }
+    if (!l) {
+      const c = clients.find((x) => x.lat != null && x.lng != null);
+      if (c) l = { lat: c.lat as number, lng: c.lng as number };
+    }
+    if (l) setLoc(l);
+  }, [clients]);
+
+  useEffect(() => {
+    if (!loc) return;
+    const ctrl = new AbortController();
+    setState("loading");
+    fetchWeather(loc.lat, loc.lng, ctrl.signal)
+      .then((w) => {
+        setWx(w);
+        setState("ok");
+      })
+      .catch((e) => {
+        if (e?.name !== "AbortError") setState("erro");
+      });
+    return () => ctrl.abort();
+  }, [loc]);
+
+  function useMyLoc() {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        const l = { lat: p.coords.latitude, lng: p.coords.longitude };
+        try {
+          localStorage.setItem("agrogiro_home_loc", JSON.stringify(l));
+        } catch {
+          /* ignore */
+        }
+        setLoc(l);
+      },
+      () => {}
+    );
+  }
+
+  if (!loc) {
+    return (
+      <button className="wx-cta" onClick={useMyLoc}>
+        📍 Ativar clima do dia (usar minha localização)
+      </button>
+    );
+  }
+  if (state !== "ok" || !wx) {
+    return (
+      <div className="wx-today">
+        <span className="wx-line">
+          {state === "erro" ? "Clima indisponível agora" : "Carregando clima…"}
+        </span>
+      </div>
+    );
+  }
+  const wl = weatherLabel(wx.now.code);
+  const adv = sprayAdvice(wx.now, wx.dias[0]);
+  const d0 = wx.dias[0];
+  return (
+    <div className="wx-today">
+      <div className="wx-emoji">{wl.emoji}</div>
+      <div className="wx-t-main">
+        <div className="wx-t-top">
+          {wx.now.temp}°C · {wl.label}
+        </div>
+        <div className="wx-t-sub">
+          {d0 ? `máx ${d0.tmax}° / mín ${d0.tmin}° · ` : ""}💨 {wx.now.vento}{" "}
+          km/h · chuva {d0 ? d0.chuvaProb : 0}%
+        </div>
+        <div className={"wx-t-adv " + adv.nivel}>{adv.texto}</div>
+      </div>
+    </div>
+  );
+}
+
 // -------------------------------------------------------------- Dashboard
 export function Dashboard({
   clients,
@@ -152,6 +246,7 @@ export function Dashboard({
       <p className="subtitle">
         Panorama de hoje, {now.getDate()} de {MESES_LONGOS[now.getMonth()]}
       </p>
+      <WeatherToday clients={clients} />
       <div className="stat-grid">
         <div className="stat">
           <div className="num">{clients.length}</div>
