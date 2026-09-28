@@ -11,6 +11,7 @@ import {
   type Client,
   type MonitTipo,
   type Monitoramento,
+  type Produto,
   type Recomendacao,
   type Talhao,
   type Visit,
@@ -28,6 +29,7 @@ export function VisitaScreen({
   clients,
   visits,
   talhoes,
+  produtos,
   presetClientId,
   onSave,
   onOpenReport,
@@ -36,6 +38,7 @@ export function VisitaScreen({
   clients: Client[];
   visits: Visit[];
   talhoes: Talhao[];
+  produtos: Produto[];
   presetClientId: string;
   onSave: (
     data: {
@@ -504,8 +507,26 @@ export function VisitaScreen({
             className="input"
             placeholder="Produto (ex: Fungicida triazol)"
             value={rProduto}
-            onChange={(e) => setRProduto(e.target.value)}
+            list="prodList"
+            onChange={(e) => {
+              const val = e.target.value;
+              setRProduto(val);
+              const p = produtos.find(
+                (x) => x.nome.toLowerCase() === val.trim().toLowerCase()
+              );
+              if (p) {
+                if (p.dosePadrao) setRDose(p.dosePadrao);
+                if (p.unidade) setRUnidade(p.unidade);
+                if (p.alvo) setRAlvo(p.alvo);
+                if (p.preco) setRPreco(p.preco);
+              }
+            }}
           />
+          <datalist id="prodList">
+            {produtos.map((p) => (
+              <option value={p.nome} key={p.id} />
+            ))}
+          </datalist>
           <div className="row2">
             <input
               className="input"

@@ -6,6 +6,8 @@ import {
   clientToRow,
   monitoramentoFromRow,
   oppFromRow,
+  produtoFromRow,
+  produtoToRow,
   recomendacaoFromRow,
   talhaoFromRow,
   talhaoToRow,
@@ -15,6 +17,7 @@ import type {
   Client,
   Monitoramento,
   Opportunity,
+  Produto,
   Recomendacao,
   Settings,
   StageKey,
@@ -22,6 +25,38 @@ import type {
   Visit,
   VisitPhoto,
 } from "@/lib/domain";
+
+export async function saveProduto(
+  organizationId: string,
+  id: string | null,
+  data: Partial<Produto>
+): Promise<Produto> {
+  const supabase = createClient();
+  const row = produtoToRow(data, organizationId);
+  if (id) {
+    const { data: out, error } = await supabase
+      .from("produtos")
+      .update(row)
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) throw error;
+    return produtoFromRow(out);
+  }
+  const { data: out, error } = await supabase
+    .from("produtos")
+    .insert(row)
+    .select()
+    .single();
+  if (error) throw error;
+  return produtoFromRow(out);
+}
+
+export async function deleteProduto(id: string): Promise<void> {
+  const supabase = createClient();
+  const { error } = await supabase.from("produtos").delete().eq("id", id);
+  if (error) throw error;
+}
 
 const BUCKET = "visit-photos";
 

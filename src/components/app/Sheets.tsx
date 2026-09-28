@@ -7,8 +7,10 @@ import {
   TIPOS_MONITORAMENTO,
   type Client,
   type Member,
+  UNIDADES_DOSE,
   type Monitoramento,
   type Opportunity,
+  type Produto,
   type Settings,
   type StageKey,
   type Talhao,
@@ -429,6 +431,19 @@ export function ClientDetailSheet({
     window.open(waLink(buildClientCard(client, lastV), client.telefone), "_blank");
   }
 
+  function sharePortal() {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const url = origin + "/p/" + client.shareToken;
+    if (navigator.clipboard) {
+      navigator.clipboard
+        .writeText(url)
+        .then(() => toast("Link do portal copiado"))
+        .catch(() => toast(url));
+    } else {
+      toast(url);
+    }
+  }
+
   return (
     <>
       <SheetHead title={client.nome || "Cliente"} onClose={onClose} />
@@ -495,6 +510,15 @@ export function ClientDetailSheet({
       >
         Compartilhar ficha no WhatsApp
       </button>
+      {client.shareToken && (
+        <button
+          className="btn-ghost"
+          style={{ paddingLeft: 0, marginTop: 2, display: "block" }}
+          onClick={sharePortal}
+        >
+          Copiar link do portal do produtor
+        </button>
+      )}
 
       <div className="section-head">
         <h2>Talhões</h2>
@@ -951,6 +975,7 @@ export function AccountSheet({
   onClose,
   onLogout,
   onEquipe,
+  onCatalogo,
   onNotifications,
   agronomoNome,
   agronomoCrea,
@@ -964,6 +989,7 @@ export function AccountSheet({
   onClose: () => void;
   onLogout: () => void;
   onEquipe: () => void;
+  onCatalogo: () => void;
   onNotifications: () => void;
   agronomoNome: string;
   agronomoCrea: string;
@@ -973,6 +999,29 @@ export function AccountSheet({
   const [aNome, setANome] = useState(agronomoNome);
   const [aCrea, setACrea] = useState(agronomoCrea);
   const [aUf, setAUf] = useState(agronomoUf);
+  const [theme, setTheme] = useState<"auto" | "light" | "dark">("auto");
+  useEffect(() => {
+    try {
+      const t = localStorage.getItem("agrogiro_theme");
+      if (t === "dark" || t === "light") setTheme(t);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+  function applyTheme(m: "auto" | "light" | "dark") {
+    setTheme(m);
+    try {
+      if (m === "auto") {
+        document.documentElement.removeAttribute("data-theme");
+        localStorage.removeItem("agrogiro_theme");
+      } else {
+        document.documentElement.setAttribute("data-theme", m);
+        localStorage.setItem("agrogiro_theme", m);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
   return (
     <>
       <SheetHead title="Sua conta" onClose={onClose} />
@@ -1002,6 +1051,15 @@ export function AccountSheet({
           onClick={onEquipe}
         >
           Equipe
+        </button>
+      )}
+      {papel === "dono" && (
+        <button
+          className="btn btn-block"
+          style={{ marginTop: 8 }}
+          onClick={onCatalogo}
+        >
+          Catálogo de produtos
         </button>
       )}
 
@@ -1056,6 +1114,30 @@ export function AccountSheet({
           </div>
         </>
       )}
+      <div className="section-head">
+        <h2>Aparência</h2>
+      </div>
+      <div className="tabs">
+        <button
+          className={"tabbtn" + (theme === "auto" ? " active" : "")}
+          onClick={() => applyTheme("auto")}
+        >
+          Automático
+        </button>
+        <button
+          className={"tabbtn" + (theme === "light" ? " active" : "")}
+          onClick={() => applyTheme("light")}
+        >
+          Claro
+        </button>
+        <button
+          className={"tabbtn" + (theme === "dark" ? " active" : "")}
+          onClick={() => applyTheme("dark")}
+        >
+          Escuro
+        </button>
+      </div>
+
       <div className="btn-row">
         <button
           className="btn btn-danger btn-block"
@@ -1185,6 +1267,150 @@ export function EquipeSheet({
             </button>
           </div>
         </>
+      )}
+    </>
+  );
+}
+
+// ------------------------------------------------------ Catálogo de produtos
+export function CatalogoSheet({
+  produtos,
+  onClose,
+  onSubmit,
+  onDelete,
+  toast,
+}: {
+  produtos: Produto[];
+  onClose: () => void;
+  onSubmit: (id: string | null, data: Partial<Produto>) => void;
+  onDelete: (id: string) => void;
+  toast: (m: string) => void;
+}) {
+  const [editId, setEditId] = useState<string | null>(null);
+  const [nome, setNome] = useState("");
+  const [dose, setDose] = useState("");
+  const [unidade, setUnidade] = useState(UNIDADES_DOSE[0]);
+  const [alvo, setAlvo] = useState("");
+  const [preco, setPreco] = useState("");
+
+  function reset() {
+    setEditId(null);
+    setNome("");
+    setDose("");
+    setUnidade(UNIDADES_DOSE[0]);
+    setAlvo("");
+    setPreco("");
+  }
+  function editar(p: Produto) {
+    setEditId(p.id);
+    setNome(p.nome);
+    setDose(p.dosePadrao);
+    setUnidade(p.unidade || UNIDADES_DOSE[0]);
+    setAlvo(p.alvo);
+    setPreco(p.preco);
+  }
+  function salvar() {
+    if (!nome.trim()) {
+      toast("Informe o nome do produto");
+      return;
+    }
+    onSubmit(editId, {
+      nome: nome.trim(),
+      dosePadrao: dose,
+      unidade,
+      alvo: alvo.trim(),
+      preco,
+    });
+    reset();
+  }
+
+  const lista = produtos
+    .slice()
+    .sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
+
+  return (
+    <>
+      <SheetHead title="Catálogo de produtos" onClose={onClose} />
+      <p className="subtitle" style={{ margin: "0 0 4px" }}>
+        Cadastre produtos com dose e preço padrão — eles agilizam o receituário.
+      </p>
+
+      <label htmlFor="pNome">{editId ? "Editar produto" : "Nome do produto"}</label>
+      <input
+        className="input"
+        id="pNome"
+        value={nome}
+        onChange={(e) => setNome(e.target.value)}
+        placeholder="Ex: Fungicida triazol + estrobilurina"
+      />
+      <div className="row2">
+        <input
+          className="input"
+          type="number"
+          placeholder="Dose"
+          value={dose}
+          onChange={(e) => setDose(e.target.value)}
+        />
+        <select
+          className="select"
+          value={unidade}
+          onChange={(e) => setUnidade(e.target.value)}
+        >
+          {UNIDADES_DOSE.map((u) => (
+            <option key={u} value={u}>
+              {u}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="row2">
+        <input
+          className="input"
+          placeholder="Alvo (opcional)"
+          value={alvo}
+          onChange={(e) => setAlvo(e.target.value)}
+        />
+        <input
+          className="input"
+          type="number"
+          placeholder="Preço (R$)"
+          value={preco}
+          onChange={(e) => setPreco(e.target.value)}
+        />
+      </div>
+      <div className="btn-row">
+        {editId && (
+          <button className="btn" onClick={reset}>
+            Cancelar
+          </button>
+        )}
+        <button className="btn btn-primary" style={{ flex: 1 }} onClick={salvar}>
+          {editId ? "Salvar alterações" : "Adicionar ao catálogo"}
+        </button>
+      </div>
+
+      <div className="section-head">
+        <h2>Produtos ({lista.length})</h2>
+      </div>
+      {!lista.length ? (
+        <p className="subtitle" style={{ margin: 0 }}>
+          Nenhum produto no catálogo ainda.
+        </p>
+      ) : (
+        lista.map((p) => (
+          <div className="mini-item" key={p.id}>
+            <div style={{ flex: 1, cursor: "pointer" }} onClick={() => editar(p)}>
+              <b style={{ fontWeight: 600 }}>{p.nome}</b>
+              {p.dosePadrao
+                ? " — " + p.dosePadrao + (p.unidade ? " " + p.unidade : "")
+                : ""}
+              {p.preco ? " · " + fmtMoney(Number(p.preco)) : ""}
+            </div>
+            <button className="rm" onClick={() => onDelete(p.id)}>
+              ×
+            </button>
+          </div>
+        ))
       )}
     </>
   );

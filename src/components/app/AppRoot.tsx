@@ -7,6 +7,7 @@ import {
   type Opportunity,
   type Member,
   type Monitoramento,
+  type Produto,
   type Recomendacao,
   type Settings,
   type TabKey,
@@ -16,10 +17,12 @@ import {
 import {
   deleteClient,
   deleteOpportunity,
+  deleteProduto,
   deleteTalhao,
   moveOpportunity,
   saveClient,
   saveOpportunity,
+  saveProduto,
   saveSettings,
   saveTalhao,
   saveVisit,
@@ -39,6 +42,7 @@ import { Agenda, Clientes, Dashboard, Funil } from "./Screens";
 import { VisitaScreen } from "./VisitaScreen";
 import {
   AccountSheet,
+  CatalogoSheet,
   ClientDetailSheet,
   ClientFormSheet,
   EquipeSheet,
@@ -62,6 +66,7 @@ type Sheet =
   | { kind: "report"; visit: Visit }
   | { kind: "account" }
   | { kind: "equipe" }
+  | { kind: "catalogo" }
   | null;
 
 export type AppRootProps = {
@@ -77,6 +82,7 @@ export type AppRootProps = {
     visits: Visit[];
     opportunities: Opportunity[];
     talhoes: Talhao[];
+    produtos: Produto[];
     settings: Settings;
   };
 };
@@ -106,6 +112,7 @@ export function AppRoot({
     initial.opportunities
   );
   const [talhoes, setTalhoes] = useState<Talhao[]>(initial.talhoes);
+  const [produtos, setProdutos] = useState<Produto[]>(initial.produtos);
   const [members, setMembers] = useState<Member[]>(initialMembers);
   const [settings, setSettings] = useState<Settings>(initial.settings);
   const [sheet, setSheet] = useState<Sheet>(null);
@@ -252,6 +259,32 @@ export function AppRoot({
       toast("Talhão excluído");
     } catch {
       toast("Não foi possível excluir");
+    }
+  }
+
+  // ------- catálogo de produtos
+  async function submitProduto(id: string | null, data: Partial<Produto>) {
+    try {
+      const saved = await saveProduto(orgId, id, data);
+      setProdutos((prev) => {
+        const exists = prev.some((p) => p.id === saved.id);
+        return exists
+          ? prev.map((p) => (p.id === saved.id ? saved : p))
+          : [...prev, saved];
+      });
+      toast(id ? "Produto atualizado" : "Produto adicionado");
+    } catch {
+      toast("Não foi possível salvar o produto");
+    }
+  }
+
+  async function removeProduto(id: string) {
+    try {
+      await deleteProduto(id);
+      setProdutos((prev) => prev.filter((p) => p.id !== id));
+      toast("Produto removido");
+    } catch {
+      toast("Não foi possível remover");
     }
   }
 
@@ -423,6 +456,7 @@ export function AppRoot({
             clients={clients}
             visits={visits}
             talhoes={talhoes}
+            produtos={produtos}
             presetClientId={visitPreset}
             onSave={saveVisitH}
             onOpenReport={(v) => setSheet({ kind: "report", visit: v })}
@@ -550,6 +584,15 @@ export function AppRoot({
               toast={toast}
             />
           )}
+          {sheet?.kind === "catalogo" && (
+            <CatalogoSheet
+              produtos={produtos}
+              onClose={() => setSheet(null)}
+              onSubmit={submitProduto}
+              onDelete={removeProduto}
+              toast={toast}
+            />
+          )}
           {sheet?.kind === "equipe" && (
             <EquipeSheet
               members={members}
@@ -595,6 +638,7 @@ export function AppRoot({
               onClose={() => setSheet(null)}
               onLogout={doLogout}
               onEquipe={() => setSheet({ kind: "equipe" })}
+              onCatalogo={() => setSheet({ kind: "catalogo" })}
               onNotifications={enableNotifications}
               agronomoNome={settings.agronomoNome}
               agronomoCrea={settings.agronomoCrea}

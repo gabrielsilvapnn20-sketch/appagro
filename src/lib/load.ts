@@ -4,6 +4,7 @@ import {
   clientFromRow,
   monitoramentoFromRow,
   oppFromRow,
+  produtoFromRow,
   recomendacaoFromRow,
   talhaoFromRow,
   visitFromRow,
@@ -11,6 +12,7 @@ import {
 import type {
   Client,
   Opportunity,
+  Produto,
   Settings,
   Talhao,
   Visit,
@@ -23,6 +25,7 @@ export async function loadAppData(): Promise<{
   visits: Visit[];
   opportunities: Opportunity[];
   talhoes: Talhao[];
+  produtos: Produto[];
   settings: Settings;
 }> {
   const supabase = await createClient();
@@ -40,7 +43,11 @@ export async function loadAppData(): Promise<{
       supabase.from("org_settings").select("*").maybeSingle(),
     ]);
 
-  const recsRes = await supabase.from("recomendacoes").select("*");
+  const [recsRes, produtosRes] = await Promise.all([
+    supabase.from("recomendacoes").select("*"),
+    supabase.from("produtos").select("*").order("nome", { ascending: true }),
+  ]);
+  const produtos = (produtosRes.data ?? []).map(produtoFromRow);
 
   const clients = (clientsRes.data ?? []).map(clientFromRow);
   const visits = (visitsRes.data ?? []).map(visitFromRow);
@@ -107,5 +114,5 @@ export async function loadAppData(): Promise<{
         agronomoUf: "",
       };
 
-  return { clients, visits, opportunities, talhoes, settings };
+  return { clients, visits, opportunities, talhoes, produtos, settings };
 }

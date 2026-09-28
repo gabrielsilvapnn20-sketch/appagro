@@ -4,11 +4,37 @@ import type {
   MonitTipo,
   Monitoramento,
   Opportunity,
+  Produto,
   Recomendacao,
   Talhao,
   Visit,
   VisitPhoto,
 } from "./domain";
+
+export function produtoFromRow(r: Record<string, unknown>): Produto {
+  return {
+    id: r.id as string,
+    nome: (r.nome as string) ?? "",
+    dosePadrao: r.dose_padrao == null ? "" : String(r.dose_padrao),
+    unidade: (r.unidade as string) ?? "",
+    alvo: (r.alvo as string) ?? "",
+    preco: r.preco == null ? "" : String(r.preco),
+  };
+}
+
+export function produtoToRow(
+  p: Partial<Produto>,
+  organizationId: string
+): Record<string, unknown> {
+  return {
+    organization_id: organizationId,
+    nome: p.nome ?? "",
+    dose_padrao: p.dosePadrao ? Number(p.dosePadrao) : null,
+    unidade: p.unidade || null,
+    alvo: p.alvo || null,
+    preco: p.preco ? Number(p.preco) : null,
+  };
+}
 
 export function recomendacaoFromRow(
   r: Record<string, unknown>
@@ -49,6 +75,7 @@ export function clientFromRow(r: Record<string, unknown>): Client {
     lat: r.lat == null ? null : Number(r.lat),
     lng: r.lng == null ? null : Number(r.lng),
     obs: (r.observacoes as string) ?? "",
+    shareToken: (r.share_token as string) ?? "",
     createdAt: (r.criado_em as string) ?? "",
   };
 }

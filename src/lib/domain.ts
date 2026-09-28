@@ -167,7 +167,17 @@ export type Client = {
   lat: number | null;
   lng: number | null;
   obs: string;
+  shareToken: string;
   createdAt: string;
+};
+
+export type Produto = {
+  id: string;
+  nome: string;
+  dosePadrao: string;
+  unidade: string;
+  alvo: string;
+  preco: string;
 };
 
 export type Talhao = {
