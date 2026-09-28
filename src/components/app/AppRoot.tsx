@@ -42,6 +42,7 @@ import { Agenda, Clientes, Dashboard, Funil } from "./Screens";
 import { VisitaScreen } from "./VisitaScreen";
 import {
   AccountSheet,
+  BiSheet,
   CatalogoSheet,
   ClientDetailSheet,
   ClientFormSheet,
@@ -67,6 +68,7 @@ type Sheet =
   | { kind: "account" }
   | { kind: "equipe" }
   | { kind: "catalogo" }
+  | { kind: "bi" }
   | null;
 
 export type AppRootProps = {
@@ -584,6 +586,14 @@ export function AppRoot({
               toast={toast}
             />
           )}
+          {sheet?.kind === "bi" && (
+            <BiSheet
+              visits={visits}
+              opportunities={opportunities}
+              members={members}
+              onClose={() => setSheet(null)}
+            />
+          )}
           {sheet?.kind === "catalogo" && (
             <CatalogoSheet
               produtos={produtos}
@@ -639,6 +649,7 @@ export function AppRoot({
               onLogout={doLogout}
               onEquipe={() => setSheet({ kind: "equipe" })}
               onCatalogo={() => setSheet({ kind: "catalogo" })}
+              onRelatorios={() => setSheet({ kind: "bi" })}
               onNotifications={enableNotifications}
               agronomoNome={settings.agronomoNome}
               agronomoCrea={settings.agronomoCrea}

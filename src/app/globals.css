@@ -879,6 +879,38 @@ select:focus-visible {
   width: 19px;
   height: 19px;
 }
+.sat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 8px 0;
+}
+.sat-card {
+  margin: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 0.5px solid var(--border);
+  background: var(--card-2, var(--card));
+}
+.sat-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  background: var(--fill, rgba(120, 120, 128, 0.12));
+}
+.sat-card figcaption {
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-soft, var(--muted));
+  text-align: center;
+}
+@media (max-width: 380px) {
+  .sat-grid {
+    grid-template-columns: 1fr;
+  }
+}
 .thumbrow {
   display: flex;
   gap: 8px;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   FASES_LAVOURA,
   STAGES,
@@ -28,11 +28,93 @@ function monitResumo(m: Monitoramento): string {
 import {
   buildClientCard,
   buildReport,
+  currentMonthKey,
   fmtDate,
   fmtMoney,
   waLink,
 } from "@/lib/format";
 import { IconClose, IconPinCircle } from "./icons";
+import {
+  sentinelInstanceId,
+  sentinelWmsUrl,
+  SENTINEL_NDVI,
+  SENTINEL_TRUE_COLOR,
+} from "@/lib/sentinel";
+
+function SignaturePad({ onChange }: { onChange: (d: string) => void }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const drawing = useRef(false);
+  const last = useRef<{ x: number; y: number } | null>(null);
+
+  function pos(e: React.MouseEvent | React.TouchEvent) {
+    const c = ref.current!;
+    const r = c.getBoundingClientRect();
+    const p =
+      "touches" in e
+        ? e.touches[0] || (e as React.TouchEvent).changedTouches[0]
+        : (e as React.MouseEvent);
+    return {
+      x: (p.clientX - r.left) * (c.width / r.width),
+      y: (p.clientY - r.top) * (c.height / r.height),
+    };
+  }
+  function start(e: React.MouseEvent | React.TouchEvent) {
+    drawing.current = true;
+    last.current = pos(e);
+  }
+  function move(e: React.MouseEvent | React.TouchEvent) {
+    if (!drawing.current) return;
+    const c = ref.current!;
+    const ctx = c.getContext("2d")!;
+    const p = pos(e);
+    ctx.strokeStyle = "#1C1C1E";
+    ctx.lineWidth = 2.4;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(last.current!.x, last.current!.y);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    last.current = p;
+  }
+  function end() {
+    if (drawing.current) {
+      drawing.current = false;
+      onChange(ref.current!.toDataURL("image/png"));
+    }
+  }
+  function clear() {
+    const c = ref.current!;
+    c.getContext("2d")!.clearRect(0, 0, c.width, c.height);
+    onChange("");
+  }
+  return (
+    <div>
+      <canvas
+        ref={ref}
+        width={640}
+        height={220}
+        style={{
+          width: "100%",
+          height: 150,
+          background: "var(--surface-2)",
+          border: "1px solid var(--border)",
+          borderRadius: 12,
+          touchAction: "none",
+        }}
+        onMouseDown={start}
+        onMouseMove={move}
+        onMouseUp={end}
+        onMouseLeave={end}
+        onTouchStart={start}
+        onTouchMove={move}
+        onTouchEnd={end}
+      />
+      <button className="btn-ghost" style={{ paddingLeft: 0 }} onClick={clear}>
+        Limpar assinatura
+      </button>
+    </div>
+  );
+}
 
 function SheetHead({
   title,
@@ -368,6 +450,38 @@ export function TalhaoFormSheet({
         <IconPinCircle />
         <span>{locLabel}</span>
       </div>
+      {lat != null && lng != null && sentinelInstanceId() && (
+        <>
+          <label style={{ marginTop: 4 }}>Satélite (Sentinel-2, últimos 90 dias)</label>
+          <div className="sat-grid">
+            <figure className="sat-card">
+              <img
+                src={sentinelWmsUrl(SENTINEL_TRUE_COLOR, lat, lng)}
+                alt="Imagem de satélite - cor real"
+                loading="lazy"
+              />
+              <figcaption>Cor real</figcaption>
+            </figure>
+            <figure className="sat-card">
+              <img
+                src={sentinelWmsUrl(SENTINEL_NDVI, lat, lng)}
+                alt="Imagem de satélite - NDVI (vigor)"
+                loading="lazy"
+              />
+              <figcaption>NDVI · vigor da lavoura</figcaption>
+            </figure>
+          </div>
+          <p className="subtitle" style={{ margin: "-4px 0 8px" }}>
+            Verde intenso no NDVI = vegetação vigorosa · tons claros/vermelhos =
+            estresse ou solo exposto.
+          </p>
+        </>
+      )}
+      {lat != null && lng != null && !sentinelInstanceId() && (
+        <p className="subtitle" style={{ margin: "0 0 8px" }}>
+          🛰️ Imagens de satélite disponíveis após configurar o Sentinel Hub.
+        </p>
+      )}
       <label htmlFor="tObs">Observações</label>
       <textarea
         className="textarea"
@@ -848,6 +962,7 @@ export function ReportSheet({
   toast: (m: string) => void;
 }) {
   const report = buildReport(visit, client, talhaoNome);
+  const [sig, setSig] = useState("");
 
   const custoTotal = visit.receituario.reduce(
     (s, r) => s + (Number(r.preco) || 0),
@@ -861,7 +976,7 @@ export function ReportSheet({
   async function baixarPdf() {
     try {
       const { downloadVisitPdf } = await import("@/lib/pdf");
-      await downloadVisitPdf(visit, client, talhaoNome);
+      await downloadVisitPdf(visit, client, talhaoNome, sig || undefined);
     } catch {
       toast("Não foi possível gerar o PDF");
     }
@@ -874,7 +989,14 @@ export function ReportSheet({
     }
     try {
       const { downloadReceitaPdf } = await import("@/lib/pdf");
-      await downloadReceitaPdf(visit, client, talhaoNome, orgNome, settings);
+      await downloadReceitaPdf(
+        visit,
+        client,
+        talhaoNome,
+        orgNome,
+        settings,
+        sig || undefined
+      );
     } catch {
       toast("Não foi possível gerar a receita");
     }
@@ -947,6 +1069,13 @@ export function ReportSheet({
           💰 Orçamento (PDF)
         </button>
       )}
+
+      <label style={{ marginTop: 14 }}>Assinatura do produtor (opcional)</label>
+      <p className="subtitle" style={{ margin: "0 0 6px", fontSize: 13 }}>
+        Peça pro produtor assinar na tela — entra no PDF da receita/relatório.
+      </p>
+      <SignaturePad onChange={setSig} />
+
       <a
         className="btn btn-primary btn-block"
         style={{
@@ -976,6 +1105,7 @@ export function AccountSheet({
   onLogout,
   onEquipe,
   onCatalogo,
+  onRelatorios,
   onNotifications,
   agronomoNome,
   agronomoCrea,
@@ -990,6 +1120,7 @@ export function AccountSheet({
   onLogout: () => void;
   onEquipe: () => void;
   onCatalogo: () => void;
+  onRelatorios: () => void;
   onNotifications: () => void;
   agronomoNome: string;
   agronomoCrea: string;
@@ -1037,6 +1168,13 @@ export function AccountSheet({
         <div className="k">EMAIL</div>
         {email}
       </div>
+      <button
+        className="btn btn-block"
+        style={{ marginTop: 8 }}
+        onClick={onRelatorios}
+      >
+        Relatórios
+      </button>
       <button
         className="btn btn-block"
         style={{ marginTop: 8 }}
@@ -1267,6 +1405,120 @@ export function EquipeSheet({
             </button>
           </div>
         </>
+      )}
+    </>
+  );
+}
+
+// ------------------------------------------------------------ Relatórios / BI
+export function BiSheet({
+  visits,
+  opportunities,
+  members,
+  onClose,
+}: {
+  visits: Visit[];
+  opportunities: Opportunity[];
+  members: Member[];
+  onClose: () => void;
+}) {
+  const mk = currentMonthKey();
+  const visitasMes = visits.filter((v) => (v.date || "").slice(0, 7) === mk).length;
+  const fechadoMes = opportunities
+    .filter((o) => o.estagio === "pedido" && (o.createdAt || "").slice(0, 7) === mk)
+    .reduce((s, o) => s + (Number(o.valor) || 0), 0);
+  const receitasMes = visits.filter(
+    (v) => (v.date || "").slice(0, 7) === mk && v.receituario.length > 0
+  ).length;
+
+  const porRtv = members
+    .map((m) => ({
+      nome: m.nome || m.email,
+      papel: m.papel,
+      n: visits.filter((v) => v.userId === m.id).length,
+    }))
+    .sort((a, b) => b.n - a.n);
+
+  const prodMap = new Map<string, { n: number; total: number }>();
+  visits.forEach((v) =>
+    v.receituario.forEach((r) => {
+      const k = r.produto.trim();
+      if (!k) return;
+      const cur = prodMap.get(k) || { n: 0, total: 0 };
+      cur.n += 1;
+      cur.total += Number(r.preco) || 0;
+      prodMap.set(k, cur);
+    })
+  );
+  const top = Array.from(prodMap.entries())
+    .map(([nome, x]) => ({ nome, ...x }))
+    .sort((a, b) => b.n - a.n)
+    .slice(0, 6);
+
+  return (
+    <>
+      <SheetHead title="Relatórios" onClose={onClose} />
+      <div className="stat-grid">
+        <div className="stat">
+          <div className="num">{visitasMes}</div>
+          <div className="lbl">visitas este mês</div>
+        </div>
+        <div className="stat">
+          <div className="num">{receitasMes}</div>
+          <div className="lbl">receitas emitidas</div>
+        </div>
+        <div className="stat">
+          <div className="num">{fmtMoney(fechadoMes)}</div>
+          <div className="lbl">fechado este mês</div>
+        </div>
+        <div className="stat">
+          <div className="num">{visits.length}</div>
+          <div className="lbl">visitas no total</div>
+        </div>
+      </div>
+
+      <div className="section-head">
+        <h2>Visitas por RTV</h2>
+      </div>
+      {porRtv.length ? (
+        <div className="card" style={{ padding: "4px 10px" }}>
+          {porRtv.map((r, i) => (
+            <div className="client-item" key={i} style={{ cursor: "default" }}>
+              <div className="avatar">
+                {(r.nome || "?")[0].toUpperCase()}
+              </div>
+              <div className="meta">
+                <div className="name">{r.nome}</div>
+                <div className="sub">{r.papel === "dono" ? "dono" : "RTV"}</div>
+              </div>
+              <span className="chip">{r.n} visita{r.n === 1 ? "" : "s"}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="subtitle" style={{ margin: 0 }}>
+          Sem equipe cadastrada.
+        </p>
+      )}
+
+      <div className="section-head">
+        <h2>Produtos mais recomendados</h2>
+      </div>
+      {top.length ? (
+        top.map((p, i) => (
+          <div className="mini-item" key={i}>
+            <div>
+              <b style={{ fontWeight: 600 }}>{p.nome}</b>
+            </div>
+            <div style={{ color: "var(--ink-soft)" }}>
+              {p.n}×{p.total > 0 ? " · " + fmtMoney(p.total) : ""}
+            </div>
+          </div>
+        ))
+      ) : (
+        <p className="subtitle" style={{ margin: 0 }}>
+          Ainda não há produtos recomendados.
+        </p>
       )}
     </>
   );

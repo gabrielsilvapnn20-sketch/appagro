@@ -20,7 +20,8 @@ const ACCENT: [number, number, number] = [178, 127, 44];
 export async function downloadVisitPdf(
   visit: Visit,
   client?: Client,
-  talhaoNome?: string
+  talhaoNome?: string,
+  signature?: string
 ) {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "pt", format: "a4" });
@@ -176,6 +177,29 @@ export async function downloadVisitPdf(
     paragraph(fmtDate(visit.nextReturnDate));
   }
 
+  if (signature) {
+    if (y > H - 150) {
+      doc.addPage();
+      y = M + 20;
+    } else {
+      y += 20;
+    }
+    try {
+      doc.addImage(signature, "PNG", M, y, 180, 60);
+    } catch {
+      /* ignore */
+    }
+    y += 66;
+    doc.setDrawColor(...INK_SOFT);
+    doc.setLineWidth(0.6);
+    doc.line(M, y, M + 200, y);
+    y += 14;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(...INK_SOFT);
+    doc.text("Ciente do produtor: " + (client?.nome || ""), M, y);
+  }
+
   footer();
 
   const nome = (client?.nome || "visita")
@@ -192,7 +216,8 @@ export async function downloadReceitaPdf(
   client: Client | undefined,
   talhaoNome: string | undefined,
   orgNome: string,
-  settings: Settings
+  settings: Settings,
+  signature?: string
 ) {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "pt", format: "a4" });
@@ -285,6 +310,28 @@ export async function downloadReceitaPdf(
     y += 14;
   }
   doc.text("Assinatura do engenheiro agrônomo responsável", M, y);
+
+  if (signature) {
+    y += 34;
+    if (y > H - 110) {
+      doc.addPage();
+      y = M + 20;
+    }
+    try {
+      doc.addImage(signature, "PNG", M, y, 180, 60);
+    } catch {
+      /* ignore */
+    }
+    y += 66;
+    doc.setDrawColor(...INK_SOFT);
+    doc.setLineWidth(0.6);
+    doc.line(M, y, M + 200, y);
+    y += 14;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(...INK_SOFT);
+    doc.text("Ciente do produtor: " + (client?.nome || ""), M, y);
+  }
 
   doc.setFontSize(8);
   doc.setTextColor(...INK_SOFT);
