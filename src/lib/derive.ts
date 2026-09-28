@@ -27,6 +27,7 @@ export type Alert = {
   date: string;
   sortD: number;
   text: string;
+  clientId: string;
 };
 
 export function alertsList(clients: Client[], visits: Visit[]): Alert[] {
@@ -43,6 +44,7 @@ export function alertsList(clients: Client[], visits: Visit[]): Alert[] {
           kind: d < 0 ? "atraso" : "retorno",
           date: v.nextReturnDate,
           sortD: d,
+          clientId: v.clientId,
           text:
             (c ? c.nome : "Cliente") +
             (d < 0
@@ -67,6 +69,7 @@ export function alertsList(clients: Client[], visits: Visit[]): Alert[] {
         kind: "semvisita",
         date: today,
         sortD: 50,
+        clientId: c.id,
         text: c.nome + " — sem visita há " + since + " dias",
       });
     }

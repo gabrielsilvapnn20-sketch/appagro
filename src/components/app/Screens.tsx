@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   CALENDARIO_SAFRA,
   STAGES,
@@ -168,9 +169,29 @@ export function Clientes({
   onSearch: (v: string) => void;
   onOpenClient: (id: string) => void;
 }) {
+  const [regiao, setRegiao] = useState("");
+  const [cultura, setCultura] = useState("");
+
   const q = (search || "").toLowerCase();
+  const regioes = Array.from(
+    new Set(clients.map((c) => (c.regiao || "").trim()).filter(Boolean))
+  ).sort();
+  const culturas = Array.from(
+    new Set(
+      clients.flatMap((c) => (c.culturas || []).map((x) => (x || "").trim()))
+    ).values()
+  )
+    .filter(Boolean)
+    .sort();
+
   const list = clients
     .filter((c) => {
+      if (regiao && (c.regiao || "").trim() !== regiao) return false;
+      if (
+        cultura &&
+        !(c.culturas || []).some((x) => (x || "").trim() === cultura)
+      )
+        return false;
       if (!q) return true;
       return (
         (c.nome || "").toLowerCase().indexOf(q) > -1 ||
@@ -179,6 +200,8 @@ export function Clientes({
       );
     })
     .sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
+
+  const hasFilters = !!(regiao || cultura);
 
   return (
     <>
@@ -192,6 +215,48 @@ export function Clientes({
           onChange={(e) => onSearch(e.target.value)}
         />
       </div>
+
+      {(regioes.length > 0 || culturas.length > 0) && (
+        <div className="filter-row">
+          {regioes.map((r) => (
+            <button
+              key={"r-" + r}
+              className={"filter-chip" + (regiao === r ? " on" : "")}
+              onClick={() => setRegiao(regiao === r ? "" : r)}
+            >
+              📍 {r}
+            </button>
+          ))}
+          {culturas.map((cu) => (
+            <button
+              key={"c-" + cu}
+              className={"filter-chip" + (cultura === cu ? " on" : "")}
+              onClick={() => setCultura(cultura === cu ? "" : cu)}
+            >
+              🌱 {cu}
+            </button>
+          ))}
+          {hasFilters && (
+            <button
+              className="filter-chip clear"
+              onClick={() => {
+                setRegiao("");
+                setCultura("");
+              }}
+            >
+              limpar ✕
+            </button>
+          )}
+        </div>
+      )}
+
+      {(q || hasFilters) && (
+        <p className="subtitle" style={{ margin: "2px 2px 8px" }}>
+          {list.length} cliente{list.length === 1 ? "" : "s"} encontrado
+          {list.length === 1 ? "" : "s"}
+        </p>
+      )}
+
       {!list.length ? (
         <div className="empty">
           <IconUserEmpty />
@@ -230,6 +295,16 @@ export function Clientes({
 }
 
 // ------------------------------------------------------------------ Funil
+// Probabilidade de fechamento por estágio (previsão ponderada do pipeline)
+const STAGE_PROB: Record<string, number> = {
+  prospect: 0.1,
+  visita: 0.2,
+  proposta: 0.4,
+  negociacao: 0.6,
+  pedido: 1,
+  posvenda: 1,
+};
+
 export function Funil({
   clients,
   opportunities,
@@ -240,19 +315,52 @@ export function Funil({
   onMove: (oppId: string, dir: number) => void;
 }) {
   const clientById = (id: string) => clients.find((c) => c.id === id);
+
+  const abertas = opportunities.filter(
+    (o) => o.estagio !== "pedido" && o.estagio !== "posvenda"
+  );
+  const totalAberto = abertas.reduce((s, o) => s + (Number(o.valor) || 0), 0);
+  const previsao = abertas.reduce(
+    (s, o) => s + (Number(o.valor) || 0) * (STAGE_PROB[o.estagio] ?? 0),
+    0
+  );
+  const totalPedidos = opportunities
+    .filter((o) => o.estagio === "pedido")
+    .reduce((s, o) => s + (Number(o.valor) || 0), 0);
+
   return (
     <>
-      <h1 className="title">Funil de vendas</h1>
+      <h1 className="title">Quadro de pedidos</h1>
       <p className="subtitle">Acompanhe cada oportunidade até o pedido</p>
+
+      <div className="pipe-summary">
+        <div className="pipe-stat">
+          <div className="pv">{fmtMoney(totalAberto)}</div>
+          <div className="pl">em aberto</div>
+        </div>
+        <div className="pipe-stat">
+          <div className="pv">{fmtMoney(previsao)}</div>
+          <div className="pl">previsão ponderada</div>
+        </div>
+        <div className="pipe-stat">
+          <div className="pv" style={{ color: "var(--primary)" }}>
+            {fmtMoney(totalPedidos)}
+          </div>
+          <div className="pl">em pedidos</div>
+        </div>
+      </div>
+
       <div className="kanban">
         {STAGES.map((st, idx) => {
           const opps = opportunities.filter((o) => o.estagio === st.key);
+          const soma = opps.reduce((s, o) => s + (Number(o.valor) || 0), 0);
           return (
             <div className="kcol" key={st.key}>
               <div className="kcol-head">
                 <span className="t">{st.label}</span>
                 <span className="c">{opps.length}</span>
               </div>
+              {soma > 0 && <div className="kcol-sum">{fmtMoney(soma)}</div>}
               {opps.length ? (
                 opps.map((o) => {
                   const c = clientById(o.clientId);
@@ -329,11 +437,15 @@ export function Agenda({
       {alerts.length ? (
         alerts.map((a, i) => (
           <div
-            className={"alert-item " + (a.kind === "atraso" ? "due" : "")}
+            className={
+              "alert-item clickable " + (a.kind === "atraso" ? "due" : "")
+            }
             key={i}
+            onClick={() => a.clientId && onOpenClient(a.clientId)}
           >
             <IconClock className="ic" />
             <div className="txt">{a.text}</div>
+            <IconChevron className="chev" />
           </div>
         ))
       ) : (

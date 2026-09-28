@@ -40,6 +40,88 @@ import {
   SENTINEL_NDVI,
   SENTINEL_TRUE_COLOR,
 } from "@/lib/sentinel";
+import {
+  diaCurto,
+  fetchWeather,
+  sprayAdvice,
+  weatherLabel,
+  type Weather,
+} from "@/lib/weather";
+
+// ------------------------------------------------------ Clima (Open-Meteo)
+export function WeatherCard({ lat, lng }: { lat: number; lng: number }) {
+  const [data, setData] = useState<Weather | null>(null);
+  const [state, setState] = useState<"loading" | "ok" | "erro">("loading");
+
+  useEffect(() => {
+    const ctrl = new AbortController();
+    setState("loading");
+    fetchWeather(lat, lng, ctrl.signal)
+      .then((w) => {
+        setData(w);
+        setState("ok");
+      })
+      .catch((e) => {
+        if (e?.name !== "AbortError") setState("erro");
+      });
+    return () => ctrl.abort();
+  }, [lat, lng]);
+
+  if (state === "loading") {
+    return (
+      <div className="weather-card">
+        <div className="wx-line">🌡️ Carregando clima da fazenda…</div>
+      </div>
+    );
+  }
+  if (state === "erro" || !data) {
+    return (
+      <div className="weather-card">
+        <div className="wx-line">Não foi possível carregar o clima agora.</div>
+      </div>
+    );
+  }
+
+  const wl = weatherLabel(data.now.code);
+  const adv = sprayAdvice(data.now, data.dias[0]);
+
+  return (
+    <div className="weather-card">
+      <div className="wx-now">
+        <div className="wx-emoji">{wl.emoji}</div>
+        <div className="wx-main">
+          <div className="wx-temp">{data.now.temp}°C</div>
+          <div className="wx-desc">{wl.label}</div>
+        </div>
+        <div className="wx-meta">
+          <span>💨 {data.now.vento} km/h</span>
+          <span>💧 {data.now.umidade}%</span>
+        </div>
+      </div>
+
+      <div className={"wx-advice " + adv.nivel}>
+        <b>Pulverização:</b> {adv.texto}
+      </div>
+
+      <div className="wx-days">
+        {data.dias.map((d) => {
+          const dl = weatherLabel(d.code);
+          return (
+            <div className="wx-day" key={d.data}>
+              <span className="wx-d">{diaCurto(d.data).split(" ")[0]}</span>
+              <span className="wx-ic">{dl.emoji}</span>
+              <span className="wx-t">
+                {d.tmax}°<i>{d.tmin}°</i>
+              </span>
+              <span className="wx-rain">💧{d.chuvaProb}%</span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="wx-src">Fonte: Open-Meteo · atualizado agora</div>
+    </div>
+  );
+}
 
 function SignaturePad({ onChange }: { onChange: (d: string) => void }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -603,6 +685,15 @@ export function ClientDetailSheet({
           <div className="k">OBSERVAÇÕES</div>
           {client.obs}
         </div>
+      )}
+
+      {client.lat != null && client.lng != null && (
+        <>
+          <div className="section-head">
+            <h2>Clima da fazenda</h2>
+          </div>
+          <WeatherCard lat={client.lat} lng={client.lng} />
+        </>
       )}
 
       <div className="btn-row" style={{ marginTop: 10 }}>

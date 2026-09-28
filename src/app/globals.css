@@ -911,6 +911,191 @@ select:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------------------------------------------------------- Clima (weather) */
+.weather-card {
+  border: 0.5px solid var(--border);
+  border-radius: 16px;
+  background: var(--card);
+  padding: 12px 14px;
+  margin: 4px 0 6px;
+}
+.wx-now {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.wx-emoji {
+  font-size: 34px;
+  line-height: 1;
+}
+.wx-main {
+  flex: 1;
+}
+.wx-temp {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.wx-desc {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+.wx-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  text-align: right;
+}
+.wx-advice {
+  margin-top: 10px;
+  border-radius: 12px;
+  padding: 9px 11px;
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+.wx-advice.boa {
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  color: var(--primary);
+}
+.wx-advice.atencao {
+  background: color-mix(in srgb, #e0a800 20%, transparent);
+  color: #9a7500;
+}
+.wx-advice.ruim {
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+  color: var(--danger);
+}
+:root[data-theme="dark"] .wx-advice.atencao,
+:root:not([data-theme="light"]) .wx-advice.atencao {
+  color: #f5c542;
+}
+.wx-days {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+  margin-top: 12px;
+}
+.wx-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 2px;
+  border-radius: 10px;
+  background: var(--fill, rgba(120, 120, 128, 0.08));
+}
+.wx-d {
+  font-size: 11px;
+  color: var(--ink-soft);
+  text-transform: capitalize;
+}
+.wx-ic {
+  font-size: 17px;
+}
+.wx-t {
+  font-size: 12px;
+  font-weight: 600;
+}
+.wx-t i {
+  font-style: normal;
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+.wx-rain {
+  font-size: 10.5px;
+  color: var(--ink-soft);
+}
+.wx-line {
+  font-size: 13px;
+  color: var(--ink-soft);
+  padding: 4px 0;
+}
+.wx-src {
+  margin-top: 8px;
+  font-size: 10.5px;
+  color: var(--ink-soft);
+  text-align: right;
+}
+
+/* --------------------------------------------------- Quadro de pedidos */
+.pipe-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 6px 0 14px;
+}
+.pipe-stat {
+  border: 0.5px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+  padding: 10px 8px;
+  text-align: center;
+}
+.pipe-stat .pv {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.pipe-stat .pl {
+  font-size: 11px;
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+.kcol-sum {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  padding: 0 2px 6px;
+}
+
+/* ---------------------------------------------------- Filtros de clientes */
+.filter-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 2px 8px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.filter-row::-webkit-scrollbar {
+  display: none;
+}
+.filter-chip {
+  flex: 0 0 auto;
+  border: 0.5px solid var(--border);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 6px 13px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.filter-chip.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.filter-chip.clear {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* Alertas clicáveis (Agenda) */
+.alert-item.clickable {
+  cursor: pointer;
+}
+.alert-item .chev {
+  width: 18px;
+  height: 18px;
+  color: var(--ink-soft);
+  flex: 0 0 auto;
+  margin-left: auto;
+}
 .thumbrow {
   display: flex;
   gap: 8px;
