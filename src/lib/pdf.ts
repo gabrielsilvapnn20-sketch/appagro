@@ -27,7 +27,7 @@ export async function downloadVisitPdf(
     doc.setFontSize(8);
     doc.setTextColor(...INK_SOFT);
     doc.text(
-      "Gerado pelo Sulco em " + fmtDate(new Date().toISOString().slice(0, 10)),
+      "Gerado pelo AgroGiro em " + fmtDate(new Date().toISOString().slice(0, 10)),
       M,
       H - 24
     );
@@ -39,7 +39,7 @@ export async function downloadVisitPdf(
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
-    doc.text("Sulco", M, 46);
+    doc.text("AgroGiro", M, 46);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(12);
     doc.text("Relatório de Visita Técnica", M, 68);

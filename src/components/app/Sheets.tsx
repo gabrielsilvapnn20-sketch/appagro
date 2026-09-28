@@ -878,6 +878,7 @@ export function AccountSheet({
   onClose,
   onLogout,
   onEquipe,
+  onNotifications,
 }: {
   orgNome: string;
   userNome: string;
@@ -886,6 +887,7 @@ export function AccountSheet({
   onClose: () => void;
   onLogout: () => void;
   onEquipe: () => void;
+  onNotifications: () => void;
 }) {
   return (
     <>
@@ -902,6 +904,13 @@ export function AccountSheet({
         <div className="k">EMAIL</div>
         {email}
       </div>
+      <button
+        className="btn btn-block"
+        style={{ marginTop: 8 }}
+        onClick={onNotifications}
+      >
+        Ativar notificações
+      </button>
       {papel === "dono" && (
         <button
           className="btn btn-block"

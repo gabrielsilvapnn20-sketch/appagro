@@ -43,7 +43,7 @@ export function AdminOverview({ orgs }: { orgs: OrgOverview[] }) {
         <div>
           <div className="brand">
             <SulcoMark />
-            Sulco · Admin
+            AgroGiro · Admin
           </div>
           <div className="topbar-sub">Painel do super administrador</div>
         </div>

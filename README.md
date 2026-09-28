@@ -1,4 +1,4 @@
-# Sulco — CRM de campo (SaaS multiempresa)
+# AgroGiro — CRM de campo (SaaS multiempresa)
 
 CRM de campo para RTVs (representantes técnicos de vendas) de grãos (soja/milho).
 Versão comercial multiempresa do protótipo `sulco.html`, mantendo o visual idêntico

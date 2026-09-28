@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   STAGES,
   type Client,
@@ -25,6 +25,7 @@ import {
   saveVisit,
 } from "@/lib/data";
 import { logout } from "@/app/auth/actions";
+import { alertsList } from "@/lib/derive";
 import { SulcoMark } from "@/components/SulcoMark";
 import {
   IconCalendar,
@@ -310,6 +311,51 @@ export function AppRoot({
     await logout();
   }
 
+  // ------- notificações
+  function notifyReturns() {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+    const due = alertsList(clients, visits).filter(
+      (a) => a.kind === "atraso" || a.kind === "retorno"
+    );
+    if (!due.length) return;
+    const hoje = due.filter((a) => a.sortD <= 0);
+    const title = hoje.length
+      ? `${hoje.length} retorno(s) para hoje`
+      : `${due.length} retorno(s) próximos`;
+    const body = due.slice(0, 3).map((a) => a.text).join("\n");
+    try {
+      new Notification(title, { body, icon: "/icons/icon-192.png" });
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function enableNotifications() {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      toast("Notificações não suportadas neste aparelho");
+      return;
+    }
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm === "granted") {
+        toast("Notificações ativadas");
+        setSheet(null);
+        setTimeout(notifyReturns, 400);
+      } else {
+        toast("Permissão de notificação negada");
+      }
+    } catch {
+      toast("Não foi possível ativar as notificações");
+    }
+  }
+
+  // ao abrir o app, se já autorizado, lembra dos retornos pendentes
+  useEffect(() => {
+    notifyReturns();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const detailClient =
     sheet?.kind === "clientDetail" ? clientById(sheet.clientId) : null;
 
@@ -319,7 +365,7 @@ export function AppRoot({
         <div>
           <div className="brand">
             <SulcoMark />
-            Sulco
+            AgroGiro
           </div>
           <div className="topbar-sub">CRM de campo para RTVs de grãos</div>
         </div>
@@ -527,6 +573,7 @@ export function AppRoot({
               onClose={() => setSheet(null)}
               onLogout={doLogout}
               onEquipe={() => setSheet({ kind: "equipe" })}
+              onNotifications={enableNotifications}
             />
           )}
         </div>

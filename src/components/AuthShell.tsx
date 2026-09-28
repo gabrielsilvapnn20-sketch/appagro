@@ -7,7 +7,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
       <div className="auth-hero">
         <div className="brand">
           <SulcoMark />
-          Sulco
+          AgroGiro
         </div>
         <div className="tagline">CRM de campo para RTVs de grãos</div>
       </div>

@@ -11,7 +11,7 @@ export type InviteResult = {
 };
 
 function genPassword(): string {
-  return "Sulco" + Math.random().toString(36).slice(2, 8) + "!" + Math.floor(Math.random() * 90 + 10);
+  return "AgroGiro" + Math.random().toString(36).slice(2, 8) + "!" + Math.floor(Math.random() * 90 + 10);
 }
 
 /**
