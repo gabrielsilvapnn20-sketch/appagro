@@ -30,6 +30,14 @@ export const IconHome = (p: IProps) => (
   </Svg>
 );
 
+export const IconMenu = (p: IProps) => (
+  <Svg {...p}>
+    <path d="M4 7h16" />
+    <path d="M4 12h16" />
+    <path d="M4 17h16" />
+  </Svg>
+);
+
 export const IconUsers = (p: IProps) => (
   <Svg {...p}>
     <circle cx="9" cy="8" r="3.2" />

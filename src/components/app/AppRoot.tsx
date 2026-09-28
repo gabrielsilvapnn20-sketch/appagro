@@ -36,6 +36,7 @@ import {
   pendingCount,
   removeFromQueue,
 } from "@/lib/offline";
+import { isStandalone } from "@/lib/pwa";
 import { SulcoMark } from "@/components/SulcoMark";
 import {
   IconCalendar,
@@ -55,10 +56,12 @@ import {
   ClientFormSheet,
   EquipeSheet,
   GoalsSheet,
+  InstallSheet,
   OppFormSheet,
   ReportSheet,
   TalhaoFormSheet,
 } from "./Sheets";
+import { IconMenu } from "./icons";
 
 type Sheet =
   | { kind: "clientForm"; client: Client | null; returnToDetail: boolean }
@@ -76,6 +79,7 @@ type Sheet =
   | { kind: "equipe" }
   | { kind: "catalogo" }
   | { kind: "bi" }
+  | { kind: "install" }
   | null;
 
 export type AppRootProps = {
@@ -133,6 +137,26 @@ export function AppRoot({
   const [pending, setPending] = useState(0);
   const [pullY, setPullY] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [showInstall, setShowInstall] = useState(false);
+
+  useEffect(() => {
+    try {
+      const dismissed =
+        localStorage.getItem("agrogiro_install_dismiss") === "1";
+      if (!dismissed && !isStandalone()) setShowInstall(true);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  function dismissInstall() {
+    setShowInstall(false);
+    try {
+      localStorage.setItem("agrogiro_install_dismiss", "1");
+    } catch {
+      /* ignore */
+    }
+  }
 
   const contentRef = useRef<HTMLDivElement>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -531,26 +555,6 @@ export function AppRoot({
 
   return (
     <div id="app">
-      <div className="topbar">
-        <div>
-          <div className="brand">
-            <SulcoMark />
-            AgroGiro
-          </div>
-          <div className="topbar-sub">CRM de campo para RTVs de grãos</div>
-        </div>
-        <div
-          className="offline-pill"
-          role="button"
-          tabIndex={0}
-          style={{ cursor: "pointer" }}
-          onClick={() => setSheet({ kind: "account" })}
-        >
-          <span className="dot" />
-          <span>online</span>
-        </div>
-      </div>
-
       {(!online || pending > 0) && (
         <div className={"conn-bar" + (online ? " sync" : "")}>
           {online
@@ -579,6 +583,40 @@ export function AppRoot({
               : "Puxe para atualizar"}
           </div>
         )}
+
+        <div className="apphead">
+          <div className="brand">
+            <SulcoMark />
+            AgroGiro
+          </div>
+          <button
+            className="menu-btn"
+            aria-label="Abrir menu"
+            onClick={() => setSheet({ kind: "account" })}
+          >
+            <IconMenu />
+          </button>
+        </div>
+
+        {showInstall && (
+          <div className="install-banner">
+            <span className="ib-ico">📲</span>
+            <button
+              className="ib-txt"
+              onClick={() => setSheet({ kind: "install" })}
+            >
+              Instale o AgroGiro no seu celular — toque para ver como
+            </button>
+            <button
+              className="ib-x"
+              aria-label="Dispensar"
+              onClick={dismissInstall}
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {tab === "dashboard" && (
           <Dashboard
             clients={clients}
@@ -800,11 +838,15 @@ export function AppRoot({
               onCatalogo={() => setSheet({ kind: "catalogo" })}
               onRelatorios={() => setSheet({ kind: "bi" })}
               onNotifications={enableNotifications}
+              onInstall={() => setSheet({ kind: "install" })}
               agronomoNome={settings.agronomoNome}
               agronomoCrea={settings.agronomoCrea}
               agronomoUf={settings.agronomoUf}
               onSaveAgronomo={saveAgronomo}
             />
+          )}
+          {sheet?.kind === "install" && (
+            <InstallSheet onClose={() => setSheet(null)} />
           )}
         </div>
       </div>

@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
+import { initInstallCapture } from "@/lib/pwa";
 
 /** Registra o service worker (instalável + offline). Sem UI. */
 export function PwaSetup() {
   useEffect(() => {
+    initInstallCapture();
     // aplica o tema salvo (claro/escuro); "auto" segue o sistema
     try {
       const t = localStorage.getItem("agrogiro_theme");

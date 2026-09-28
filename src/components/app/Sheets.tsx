@@ -47,6 +47,13 @@ import {
   weatherLabel,
   type Weather,
 } from "@/lib/weather";
+import {
+  canInstall,
+  isIOS,
+  isStandalone,
+  onInstallChange,
+  promptInstall,
+} from "@/lib/pwa";
 
 // ------------------------------------------------------ Clima (Open-Meteo)
 export function WeatherCard({ lat, lng }: { lat: number; lng: number }) {
@@ -1198,6 +1205,7 @@ export function AccountSheet({
   onCatalogo,
   onRelatorios,
   onNotifications,
+  onInstall,
   agronomoNome,
   agronomoCrea,
   agronomoUf,
@@ -1213,6 +1221,7 @@ export function AccountSheet({
   onCatalogo: () => void;
   onRelatorios: () => void;
   onNotifications: () => void;
+  onInstall: () => void;
   agronomoNome: string;
   agronomoCrea: string;
   agronomoUf: string;
@@ -1246,51 +1255,52 @@ export function AccountSheet({
   }
   return (
     <>
-      <SheetHead title="Sua conta" onClose={onClose} />
-      <div className="field-view">
-        <div className="k">EMPRESA</div>
-        {orgNome}
+      <SheetHead title="Menu" onClose={onClose} />
+
+      <div className="menu-id">
+        <div className="menu-avatar">
+          {(userNome || orgNome || "?")[0].toUpperCase()}
+        </div>
+        <div className="menu-idmeta">
+          <div className="menu-name">{userNome || "—"}</div>
+          <div className="menu-sub">
+            {orgNome} · {papel === "dono" ? "dono" : "RTV"}
+          </div>
+          <div className="menu-sub">{email}</div>
+        </div>
       </div>
-      <div className="field-view">
-        <div className="k">USUÁRIO</div>
-        {userNome || "—"} · {papel === "dono" ? "dono" : "RTV"}
-      </div>
-      <div className="field-view">
-        <div className="k">EMAIL</div>
-        {email}
-      </div>
-      <button
-        className="btn btn-block"
-        style={{ marginTop: 8 }}
-        onClick={onRelatorios}
-      >
-        Relatórios
-      </button>
-      <button
-        className="btn btn-block"
-        style={{ marginTop: 8 }}
-        onClick={onNotifications}
-      >
-        Ativar notificações
-      </button>
-      {papel === "dono" && (
-        <button
-          className="btn btn-block"
-          style={{ marginTop: 8 }}
-          onClick={onEquipe}
-        >
-          Equipe
+
+      <div className="menu-list">
+        <button className="menu-row" onClick={onNotifications}>
+          <span className="mi">🔔</span>
+          <span className="ml">Ativar notificações</span>
+          <span className="mc">›</span>
         </button>
-      )}
-      {papel === "dono" && (
-        <button
-          className="btn btn-block"
-          style={{ marginTop: 8 }}
-          onClick={onCatalogo}
-        >
-          Catálogo de produtos
+        <button className="menu-row" onClick={onRelatorios}>
+          <span className="mi">📊</span>
+          <span className="ml">Relatórios e exportar</span>
+          <span className="mc">›</span>
         </button>
-      )}
+        {papel === "dono" && (
+          <button className="menu-row" onClick={onEquipe}>
+            <span className="mi">👥</span>
+            <span className="ml">Equipe</span>
+            <span className="mc">›</span>
+          </button>
+        )}
+        {papel === "dono" && (
+          <button className="menu-row" onClick={onCatalogo}>
+            <span className="mi">📦</span>
+            <span className="ml">Catálogo de produtos</span>
+            <span className="mc">›</span>
+          </button>
+        )}
+        <button className="menu-row" onClick={onInstall}>
+          <span className="mi">📲</span>
+          <span className="ml">Instalar o app no celular</span>
+          <span className="mc">›</span>
+        </button>
+      </div>
 
       {papel === "dono" && (
         <>
@@ -1376,6 +1386,90 @@ export function AccountSheet({
           Sair da conta
         </button>
       </div>
+    </>
+  );
+}
+
+// ------------------------------------------------------- Instalar o app (PWA)
+export function InstallSheet({ onClose }: { onClose: () => void }) {
+  const [, force] = useState(0);
+  useEffect(() => onInstallChange(() => force((n) => n + 1)), []);
+
+  const jaInstalado = isStandalone();
+  const ios = isIOS();
+  const podeInstalar = canInstall();
+
+  return (
+    <>
+      <SheetHead title="Instalar o AgroGiro" onClose={onClose} />
+
+      {jaInstalado ? (
+        <div className="empty">
+          <p>✅ O app já está instalado neste aparelho. Bom trabalho no campo!</p>
+        </div>
+      ) : (
+        <>
+          <p className="subtitle" style={{ marginTop: 0 }}>
+            Instale na tela inicial para abrir como um app de verdade — tela
+            cheia, ícone próprio e acesso offline.
+          </p>
+
+          {podeInstalar && (
+            <button
+              className="btn btn-primary btn-block"
+              style={{ marginTop: 4 }}
+              onClick={() => promptInstall()}
+            >
+              📲 Instalar agora
+            </button>
+          )}
+
+          <div className="section-head">
+            <h2>{ios ? "No iPhone / iPad (Safari)" : "No Android (Chrome)"}</h2>
+          </div>
+          <div className="install-steps">
+            {ios ? (
+              <>
+                <div className="step">
+                  <b>1.</b> Abra este site no <b>Safari</b>.
+                </div>
+                <div className="step">
+                  <b>2.</b> Toque no botão <b>Compartilhar</b>{" "}
+                  <span aria-hidden>􀈂</span> (quadrado com seta pra cima).
+                </div>
+                <div className="step">
+                  <b>3.</b> Escolha <b>Adicionar à Tela de Início</b>.
+                </div>
+                <div className="step">
+                  <b>4.</b> Toque em <b>Adicionar</b>. Pronto — o ícone do
+                  AgroGiro aparece na tela inicial.
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="step">
+                  <b>1.</b> Abra este site no <b>Chrome</b>.
+                </div>
+                <div className="step">
+                  <b>2.</b> Toque no menu <b>⋮</b> (três pontinhos, canto
+                  superior direito).
+                </div>
+                <div className="step">
+                  <b>3.</b> Escolha <b>Instalar app</b> (ou{" "}
+                  <b>Adicionar à tela inicial</b>).
+                </div>
+                <div className="step">
+                  <b>4.</b> Confirme em <b>Instalar</b>.
+                </div>
+              </>
+            )}
+          </div>
+          <p className="subtitle">
+            Depois de instalado, abra sempre pelo ícone — assim as notificações e
+            o modo offline funcionam melhor.
+          </p>
+        </>
+      )}
     </>
   );
 }
